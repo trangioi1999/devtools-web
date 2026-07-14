@@ -37,15 +37,15 @@ export function TryItOutForm({ endpoint }: { endpoint: Endpoint }) {
       return
     }
 
-    const built = buildRequest(endpoint, activeEnv, {
-      path: pathValues,
-      query: queryValues,
-      headers: {},
-      body: bodyText || undefined,
-    })
-
     const start = performance.now()
     try {
+      const built = buildRequest(endpoint, activeEnv, {
+        path: pathValues,
+        query: queryValues,
+        headers: {},
+        body: bodyText || undefined,
+      })
+
       const res = await fetch(built.url, { method: built.method, headers: built.headers, body: built.body })
       const timeMs = Math.round(performance.now() - start)
       const text = await res.text()
@@ -62,7 +62,7 @@ export function TryItOutForm({ endpoint }: { endpoint: Endpoint }) {
       setResponse({ status: res.status, headers, bodyText: text, bodyJson: json, timeMs })
     } catch (err) {
       setError(
-        `Request failed: ${(err as Error).message}. If this is a cross-origin request, the server likely needs to allow this origin via CORS — ask the backend team to enable it, or configure a proxy URL prefix in settings.`,
+        `Request failed: ${(err as Error).message}. If this is a cross-origin request, the server likely needs to allow this origin via CORS — ask the backend team to enable it, or use an external proxy (e.g. a Cloudflare Worker) in front of the API.`,
       )
     }
   }
@@ -73,13 +73,17 @@ export function TryItOutForm({ endpoint }: { endpoint: Endpoint }) {
       setError('No active environment selected. Create/select one above.')
       return
     }
-    const built = buildRequest(endpoint, activeEnv, {
-      path: pathValues,
-      query: queryValues,
-      headers: {},
-      body: bodyText || undefined,
-    })
-    navigator.clipboard.writeText(toCurl(built))
+    try {
+      const built = buildRequest(endpoint, activeEnv, {
+        path: pathValues,
+        query: queryValues,
+        headers: {},
+        body: bodyText || undefined,
+      })
+      navigator.clipboard.writeText(toCurl(built))
+    } catch (err) {
+      setError(`Could not build request: ${(err as Error).message}`)
+    }
   }
 
   return (

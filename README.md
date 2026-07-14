@@ -43,4 +43,4 @@ Note: a private repo requires GitHub Pro/Team to enable Pages; a public repo is 
 
 ## CORS note (API Client)
 
-Requests are sent directly from your browser via `fetch`. If the target API doesn't allow the GitHub Pages origin via CORS, requests will fail — ask the backend to allow the origin, or configure a proxy URL prefix in the API Client settings.
+Requests are sent directly from your browser via `fetch`. If the target API doesn't allow the GitHub Pages origin via CORS, requests will fail — ask the backend to allow the origin, or put an external proxy (e.g. a Cloudflare Worker) in front of the API.
