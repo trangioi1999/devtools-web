@@ -1,4 +1,5 @@
-import { parse, parseTree, ParseError, ParseErrorCode, printParseErrorCode } from 'jsonc-parser'
+import { parse, parseTree, printParseErrorCode } from 'jsonc-parser'
+import type { ParseError, ParseErrorCode } from 'jsonc-parser'
 
 export interface StrictParseError {
   message: string
