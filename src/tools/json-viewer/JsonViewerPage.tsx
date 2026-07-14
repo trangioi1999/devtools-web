@@ -26,6 +26,7 @@ export function JsonViewerPage() {
     const next = value ?? ''
     setText(next)
     saveJsonViewerContent(next)
+    setEscapeError(null)
   }
 
   const handleMount: OnMount = (editor, monacoInstance) => {
