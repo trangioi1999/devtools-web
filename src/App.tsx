@@ -1,9 +1,7 @@
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Layout } from './components/Layout'
+import { JsonViewerPage } from './tools/json-viewer/JsonViewerPage'
 
-function JsonPlaceholder() {
-  return <div className="p-4">JSON Viewer (coming in Task 4)</div>
-}
 function ApiPlaceholder() {
   return <div className="p-4">API Client (coming in Task 9)</div>
 }
@@ -14,7 +12,7 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<Navigate to="/json" replace />} />
-          <Route path="/json" element={<JsonPlaceholder />} />
+          <Route path="/json" element={<JsonViewerPage />} />
           <Route path="/api" element={<ApiPlaceholder />} />
         </Route>
       </Routes>
