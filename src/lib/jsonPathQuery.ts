@@ -14,7 +14,7 @@ function normalizePath(bracketPath: string): string {
   let result = bracketPath.replace(/^\$/, '$')
 
   // Replace $['key'] with $.key, but keep numeric indices as [n]
-  result = result.replace(/\[['"]([^'"]+)['"]\]/g, (match, key) => {
+  result = result.replace(/\[['"]([^'"]+)['"]\]/g, (_match, key) => {
     if (/^\d+$/.test(key)) {
       return `[${key}]`
     }
