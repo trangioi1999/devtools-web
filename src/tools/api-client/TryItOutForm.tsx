@@ -25,12 +25,13 @@ export function TryItOutForm({ endpoint }: { endpoint: Endpoint }) {
   const pathParams = endpoint.parameters.filter((p) => p.in === 'path')
   const queryParams = endpoint.parameters.filter((p) => p.in === 'query')
 
-  const activeEnv = listEnvironments().find((e) => e.id === getActiveEnvironmentId())
+  const getActiveEnv = () => listEnvironments().find((e) => e.id === getActiveEnvironmentId())
 
   const handleSend = async () => {
     setError(null)
     setResponse(null)
 
+    const activeEnv = getActiveEnv()
     if (!activeEnv) {
       setError('No active environment selected. Create/select one above.')
       return
@@ -67,7 +68,11 @@ export function TryItOutForm({ endpoint }: { endpoint: Endpoint }) {
   }
 
   const handleCopyCurl = () => {
-    if (!activeEnv) return
+    const activeEnv = getActiveEnv()
+    if (!activeEnv) {
+      setError('No active environment selected. Create/select one above.')
+      return
+    }
     const built = buildRequest(endpoint, activeEnv, {
       path: pathValues,
       query: queryValues,
