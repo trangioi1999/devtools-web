@@ -47,4 +47,19 @@ describe('toTypeScriptInterface', () => {
     const ts = toTypeScriptInterface({ a: 1 }, 'MyType')
     expect(ts).toContain('interface MyType {')
   })
+
+  it('merges an array of objects into a single interface instead of duplicate declarations', () => {
+    const ts = toTypeScriptInterface({ items: [{ a: 1 }, { b: 'x' }] })
+    const occurrences = ts.match(/interface RootItems \{/g)
+    expect(occurrences).toHaveLength(1)
+    expect(ts).toContain('a: number')
+    expect(ts).toContain('b: string')
+  })
+
+  it('merges array-of-object field types across elements when a field type differs', () => {
+    const ts = toTypeScriptInterface({ items: [{ a: 1 }, { a: 'x' }] })
+    const occurrences = ts.match(/interface RootItems \{/g)
+    expect(occurrences).toHaveLength(1)
+    expect(ts).toContain('a: number | string')
+  })
 })

@@ -45,12 +45,25 @@ function typeForValue(value: unknown, propName: string, interfaceNamePrefix: str
   return tsPrimitiveType(value)
 }
 
-function renderInterface(name: string, obj: Record<string, unknown>, pending: PendingInterface[]): string {
-  const lines = Object.entries(obj).map(([key, val]) => {
-    const type = typeForValue(val, key, name, pending)
-    return `  ${key}: ${type}`
-  })
-  return `interface ${name} {\n${lines.join('\n')}\n}`
+function computeFields(obj: Record<string, unknown>, namePrefix: string, pending: PendingInterface[]): Record<string, string> {
+  const fields: Record<string, string> = {}
+  for (const [key, val] of Object.entries(obj)) {
+    fields[key] = typeForValue(val, key, namePrefix, pending)
+  }
+  return fields
+}
+
+function mergeFieldMaps(a: Record<string, string>, b: Record<string, string>): Record<string, string> {
+  const merged: Record<string, string> = { ...a }
+  for (const [key, type] of Object.entries(b)) {
+    if (!(key in merged)) {
+      merged[key] = type
+    } else if (merged[key] !== type) {
+      const types = new Set([...merged[key].split(' | '), ...type.split(' | ')])
+      merged[key] = [...types].join(' | ')
+    }
+  }
+  return merged
 }
 
 export function toTypeScriptInterface(value: unknown, rootName = 'Root'): string {
@@ -59,12 +72,30 @@ export function toTypeScriptInterface(value: unknown, rootName = 'Root'): string
   }
 
   const pending: PendingInterface[] = [{ name: rootName, value: value as Record<string, unknown> }]
-  const rendered: string[] = []
+  // Sibling array elements (e.g. items in an array of objects) can each push
+  // a pending interface with the same generated name — merge those by name
+  // (union of fields, union of conflicting field types) instead of emitting
+  // multiple TS `interface` declarations with the same name, which TS would
+  // silently combine via declaration merging into a misleading shape.
+  const fieldsByName = new Map<string, Record<string, string>>()
+  const order: string[] = []
 
   while (pending.length > 0) {
     const next = pending.shift() as PendingInterface
-    rendered.push(renderInterface(next.name, next.value, pending))
+    const fields = computeFields(next.value, next.name, pending)
+    if (fieldsByName.has(next.name)) {
+      fieldsByName.set(next.name, mergeFieldMaps(fieldsByName.get(next.name) as Record<string, string>, fields))
+    } else {
+      order.push(next.name)
+      fieldsByName.set(next.name, fields)
+    }
   }
+
+  const rendered = order.map((name) => {
+    const fields = fieldsByName.get(name) as Record<string, string>
+    const lines = Object.entries(fields).map(([key, type]) => `  ${key}: ${type}`)
+    return `interface ${name} {\n${lines.join('\n')}\n}`
+  })
 
   return rendered.join('\n\n')
 }
