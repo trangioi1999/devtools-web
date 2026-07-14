@@ -30,10 +30,26 @@ describe('autoFixJson', () => {
     expect(JSON.parse(result.fixed as string)).toEqual({ a: 'x' })
   })
 
-  it('returns changed:false for already-valid strict JSON with identical formatting intent', () => {
+  it('parses already-valid strict JSON correctly (changed reflects reformatting, not fixing)', () => {
+    // Note: `changed` is derived from string equality against the reformatted
+    // (JSON.stringify(value, null, 2)) output, so it is typically true even
+    // for already-valid input that merely differs in whitespace. We only
+    // assert the parsed value here, not `changed`.
     const result = autoFixJson('{"a":1}')
     expect(result.fixed).not.toBeNull()
     expect(JSON.parse(result.fixed as string)).toEqual({ a: 1 })
+  })
+
+  it('does not corrupt valid JSON containing an apostrophe in a string value', () => {
+    const result = autoFixJson('{"message": "It\'s broken"}')
+    expect(result.fixed).not.toBeNull()
+    expect(JSON.parse(result.fixed as string)).toEqual({ message: "It's broken" })
+  })
+
+  it('does not corrupt valid JSON with a comma+colon pattern inside a string value', () => {
+    const result = autoFixJson('{"desc": "Name, Age: unknown"}')
+    expect(result.fixed).not.toBeNull()
+    expect(JSON.parse(result.fixed as string)).toEqual({ desc: 'Name, Age: unknown' })
   })
 
   it('returns fixed:null for unrecoverable input', () => {

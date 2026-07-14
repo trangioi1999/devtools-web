@@ -46,32 +46,52 @@ export function parseJsonStrict(text: string): StrictParseResult {
 
 export type AutoFixResult = { fixed: string; changed: boolean } | { fixed: null; changed: false }
 
-export function autoFixJson(text: string): AutoFixResult {
-  // Preprocess to handle single quotes and unquoted keys
-  const preprocessed = preprocessJson(text)
-
+function tryParse(text: string): { value: unknown } | null {
   const errors: ParseError[] = []
-  const tree = parseTree(preprocessed, errors, {
+  const tree = parseTree(text, errors, {
     allowTrailingComma: true,
     disallowComments: false,
   })
 
-  if (!tree) {
-    return { fixed: null, changed: false }
+  if (!tree || errors.length > 0) {
+    return null
   }
 
   const parseErrors: ParseError[] = []
-  const value = parse(preprocessed, parseErrors, {
+  const value = parse(text, parseErrors, {
     allowTrailingComma: true,
     disallowComments: false,
   })
 
   if (parseErrors.length > 0) {
+    return null
+  }
+
+  return { value }
+}
+
+export function autoFixJson(text: string): AutoFixResult {
+  // First, try parsing the raw input untouched. jsonc-parser already
+  // tolerates valid JSON plus JSONC comments/trailing commas, so any
+  // already-valid input (including strings containing apostrophes or
+  // colons) is parsed directly and never touched by the regex-based
+  // preprocessing below, which is not string-boundary-aware and can
+  // corrupt valid JSON (e.g. "It's broken" or "Name, Age: unknown").
+  const rawResult = tryParse(text)
+  if (rawResult) {
+    const fixed = JSON.stringify(rawResult.value, null, 2)
+    const changed = fixed !== text
+    return { fixed, changed }
+  }
+
+  // Raw parse failed: fall back to preprocessing for genuinely malformed
+  // input (single-quoted JSON5, unquoted keys) and retry.
+  const preprocessed = preprocessJson(text)
+  const preprocessedResult = tryParse(preprocessed)
+  if (!preprocessedResult) {
     return { fixed: null, changed: false }
   }
 
-  const fixed = JSON.stringify(value, null, 2)
-  const changed = fixed !== text
-
-  return { fixed, changed }
+  const fixed = JSON.stringify(preprocessedResult.value, null, 2)
+  return { fixed, changed: true }
 }
