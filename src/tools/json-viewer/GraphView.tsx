@@ -10,9 +10,10 @@ interface GraphCanvasProps {
   value: unknown
   onCopyPath: (path: string) => void
   onCopyValue: (value: unknown) => void
+  search: string
 }
 
-function GraphCanvas({ value, onCopyPath, onCopyValue }: GraphCanvasProps) {
+function GraphCanvas({ value, onCopyPath, onCopyValue, search }: GraphCanvasProps) {
   const layout = useMemo(() => computeJsonGraphLayout(value), [value])
   const { setCenter } = useReactFlow()
 
@@ -30,7 +31,7 @@ function GraphCanvas({ value, onCopyPath, onCopyValue }: GraphCanvasProps) {
     id: n.id,
     type: n.type,
     position: n.position,
-    data: { rows: n.data.rows, onCopyPath, onCopyValue, onFocusNode },
+    data: { rows: n.data.rows, onCopyPath, onCopyValue, onFocusNode, search },
   }))
 
   const edges: Edge[] = layout.edges.map((e) => ({ id: e.id, source: e.source, target: e.target }))
@@ -50,10 +51,10 @@ function GraphCanvas({ value, onCopyPath, onCopyValue }: GraphCanvasProps) {
   )
 }
 
-export function GraphView({ value, onCopyPath, onCopyValue }: GraphCanvasProps) {
+export function GraphView({ value, onCopyPath, onCopyValue, search }: GraphCanvasProps) {
   return (
     <ReactFlowProvider>
-      <GraphCanvas value={value} onCopyPath={onCopyPath} onCopyValue={onCopyValue} />
+      <GraphCanvas value={value} onCopyPath={onCopyPath} onCopyValue={onCopyValue} search={search} />
     </ReactFlowProvider>
   )
 }

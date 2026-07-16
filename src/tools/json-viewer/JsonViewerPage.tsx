@@ -181,13 +181,17 @@ export function JsonViewerPage() {
                     <Icon size={16} />
                   </button>
                 ))}
-                <input
-                  placeholder="Search JSON…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="ml-auto px-2 py-1 text-sm border border-slate-300 rounded w-48"
-                />
-                {search && <span className="text-xs text-slate-500 whitespace-nowrap">{matchCount} matches</span>}
+                {viewMode !== 'chart' && (
+                  <>
+                    <input
+                      placeholder="Search JSON…"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="ml-auto px-2 py-1 text-sm border border-slate-300 rounded w-48"
+                    />
+                    {search && <span className="text-xs text-slate-500 whitespace-nowrap">{matchCount} matches</span>}
+                  </>
+                )}
               </div>
               <div className="flex-1 min-h-0 overflow-auto">
                 {!parsed.ok ? (
@@ -197,9 +201,9 @@ export function JsonViewerPage() {
                     ))}
                   </div>
                 ) : viewMode === 'tree' ? (
-                  <GraphView value={parsed.value} onCopyPath={handleCopyPath} onCopyValue={handleCopyValue} />
+                  <GraphView value={parsed.value} onCopyPath={handleCopyPath} onCopyValue={handleCopyValue} search={search} />
                 ) : viewMode === 'table' ? (
-                  <TableView value={parsed.value} onCopyPath={handleCopyPath} onCopyValue={handleCopyValue} />
+                  <TableView value={parsed.value} onCopyPath={handleCopyPath} onCopyValue={handleCopyValue} search={search} />
                 ) : viewMode === 'text' ? (
                   <TextView value={parsed.value} />
                 ) : (
