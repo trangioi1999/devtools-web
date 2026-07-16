@@ -7,7 +7,7 @@ export function Layout() {
     }`
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-screen flex flex-col">
       <header className="border-b border-slate-200 px-4 py-3 flex items-center gap-2">
         <span className="font-semibold text-slate-800 mr-4">DevTools</span>
         <NavLink to="/json" className={linkClass}>JSON Viewer</NavLink>
