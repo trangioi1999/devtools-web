@@ -4,9 +4,10 @@ interface ConvertModalProps {
   value: unknown
   format: 'yaml' | 'typescript'
   onClose: () => void
+  onCopied: () => void
 }
 
-export function ConvertModal({ value, format, onClose }: ConvertModalProps) {
+export function ConvertModal({ value, format, onClose, onCopied }: ConvertModalProps) {
   let output: string
   let error: string | null = null
 
@@ -17,7 +18,10 @@ export function ConvertModal({ value, format, onClose }: ConvertModalProps) {
     error = (err as Error).message
   }
 
-  const handleCopy = () => navigator.clipboard.writeText(output)
+  const handleCopy = () => {
+    navigator.clipboard.writeText(output)
+    onCopied()
+  }
 
   return (
     <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-10">
