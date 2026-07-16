@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { computeChartData } from '../../lib/jsonChartData'
 
@@ -9,6 +9,12 @@ export function ChartView({ value }: { value: unknown }) {
   const [chartKind, setChartKind] = useState<ChartKind>('bar')
   const [xField, setXField] = useState<string | null>(null)
   const [yField, setYField] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!result.ok) return
+    setXField((current) => (current && result.fields.some((f) => f.key === current) ? current : null))
+    setYField((current) => (current && result.numericFields.includes(current) ? current : null))
+  }, [result])
 
   if (!result.ok) {
     return <div className="p-4 text-sm text-slate-500">{result.reason}</div>
