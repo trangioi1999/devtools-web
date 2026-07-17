@@ -5,6 +5,7 @@ import { parseJsonStrict, autoFixJson } from '../../lib/jsonAutoFix'
 import { escapeJsonString, unescapeJsonString } from '../../lib/jsonEscape'
 import { countJsonMatches } from '../../lib/jsonSearch'
 import { loadJsonViewerContent, saveJsonViewerContent } from './jsonViewerStore'
+import { SplitPane } from '../../components/SplitPane'
 import { CompareView } from './CompareView'
 import { ConvertModal } from './ConvertModal'
 import { JsonPathPanel } from './JsonPathPanel'
@@ -157,7 +158,8 @@ export function JsonViewerPage() {
 
           {showJsonPath && <JsonPathPanel value={parsed.ok ? parsed.value : null} />}
 
-          <div className="flex-1 grid grid-cols-2 grid-rows-1 min-h-0">
+          <div className="flex-1 min-h-0">
+            <SplitPane direction="horizontal" storageKey="devtools:json-viewer:editor-split">
             <Editor
               language="json"
               value={text}
@@ -165,7 +167,7 @@ export function JsonViewerPage() {
               onChange={handleChange}
               options={{ minimap: { enabled: false }, fontSize: 13 }}
             />
-            <div className="flex flex-col min-h-0 border-l border-slate-200">
+            <div className="h-full flex flex-col min-h-0">
               <div className="flex items-center gap-1 border-b border-slate-200 px-3 py-1.5">
                 {VIEW_MODES.map(({ mode, label, icon: Icon }) => (
                   <button
@@ -211,6 +213,7 @@ export function JsonViewerPage() {
                 )}
               </div>
             </div>
+            </SplitPane>
           </div>
         </div>
       )}

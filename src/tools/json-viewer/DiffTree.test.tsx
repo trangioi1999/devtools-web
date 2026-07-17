@@ -5,28 +5,28 @@ import type { DiffNode } from './diff'
 
 describe('DiffTree', () => {
   it('renders an unchanged leaf with its value', () => {
-    const node: DiffNode = { status: 'unchanged', key: '$', children: [{ status: 'unchanged', key: 'a', value: 1 }] }
+    const node: DiffNode = { status: 'unchanged', key: '$', children: [{ status: 'unchanged', key: 'a', value: 1, hasChanges: false }], kind: 'object', hasChanges: true }
     render(<DiffTree node={node} />)
     expect(screen.getByText('a')).toBeInTheDocument()
     expect(screen.getByText('1')).toBeInTheDocument()
   })
 
   it('renders a modified leaf showing old and new value', () => {
-    const node: DiffNode = { status: 'unchanged', key: '$', children: [{ status: 'modified', key: 'a', oldValue: 1, value: 2 }] }
+    const node: DiffNode = { status: 'unchanged', key: '$', children: [{ status: 'modified', key: 'a', oldValue: 1, value: 2, hasChanges: true }], kind: 'object', hasChanges: true }
     render(<DiffTree node={node} />)
     expect(screen.getByText('1')).toBeInTheDocument()
     expect(screen.getByText('2')).toBeInTheDocument()
   })
 
   it('renders an added leaf', () => {
-    const node: DiffNode = { status: 'unchanged', key: '$', children: [{ status: 'added', key: 'b', value: 2 }] }
+    const node: DiffNode = { status: 'unchanged', key: '$', children: [{ status: 'added', key: 'b', value: 2, hasChanges: true }], kind: 'object', hasChanges: true }
     render(<DiffTree node={node} />)
     expect(screen.getByText('b')).toBeInTheDocument()
     expect(screen.getByText('2')).toBeInTheDocument()
   })
 
   it('renders a removed leaf using its old value', () => {
-    const node: DiffNode = { status: 'unchanged', key: '$', children: [{ status: 'removed', key: 'b', oldValue: 2 }] }
+    const node: DiffNode = { status: 'unchanged', key: '$', children: [{ status: 'removed', key: 'b', oldValue: 2, hasChanges: true }], kind: 'object', hasChanges: true }
     render(<DiffTree node={node} />)
     expect(screen.getByText('b')).toBeInTheDocument()
     expect(screen.getByText('2')).toBeInTheDocument()

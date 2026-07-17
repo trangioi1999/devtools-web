@@ -4,8 +4,10 @@ export function toYaml(value: unknown): string {
   return dump(value)
 }
 
-function capitalize(name: string): string {
-  return name.charAt(0).toUpperCase() + name.slice(1)
+function pascalCase(name: string): string {
+  const parts = name.split(/[^a-zA-Z0-9]+/).filter(Boolean)
+  if (parts.length === 0) return 'Field'
+  return parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join('')
 }
 
 function tsPrimitiveType(value: unknown): string {
@@ -28,16 +30,42 @@ interface PendingInterface {
   value: Record<string, unknown>
 }
 
-function typeForValue(value: unknown, propName: string, interfaceNamePrefix: string, pending: PendingInterface[]): string {
+// Interface names map 1-1 to the JSON key they came from ("environment" ->
+// "Environment", "telemetry_logs" -> "TelemetryLogs"). Two different keys can
+// collide on the same PascalCase name (e.g. "my_key" and "myKey") — the later
+// one gets a numeric suffix so declarations stay distinct.
+interface NameRegistry {
+  byKey: Map<string, string>
+  used: Set<string>
+}
+
+function interfaceNameForKey(key: string, registry: NameRegistry): string {
+  const existing = registry.byKey.get(key)
+  if (existing) return existing
+
+  let base = pascalCase(key)
+  if (/^\d/.test(base)) base = `_${base}`
+  let candidate = base
+  let suffix = 2
+  while (registry.used.has(candidate)) {
+    candidate = `${base}${suffix}`
+    suffix += 1
+  }
+  registry.used.add(candidate)
+  registry.byKey.set(key, candidate)
+  return candidate
+}
+
+function typeForValue(value: unknown, propName: string, registry: NameRegistry, pending: PendingInterface[]): string {
   if (Array.isArray(value)) {
     if (value.length === 0) return 'unknown[]'
-    const elementTypes = new Set(value.map((el) => typeForValue(el, propName, interfaceNamePrefix, pending)))
+    const elementTypes = new Set(value.map((el) => typeForValue(el, propName, registry, pending)))
     const union = [...elementTypes].join(' | ')
     return elementTypes.size > 1 ? `(${union})[]` : `${union}[]`
   }
 
   if (value !== null && typeof value === 'object') {
-    const interfaceName = `${interfaceNamePrefix}${capitalize(propName)}`
+    const interfaceName = interfaceNameForKey(propName, registry)
     pending.push({ name: interfaceName, value: value as Record<string, unknown> })
     return interfaceName
   }
@@ -45,10 +73,10 @@ function typeForValue(value: unknown, propName: string, interfaceNamePrefix: str
   return tsPrimitiveType(value)
 }
 
-function computeFields(obj: Record<string, unknown>, namePrefix: string, pending: PendingInterface[]): Record<string, string> {
+function computeFields(obj: Record<string, unknown>, registry: NameRegistry, pending: PendingInterface[]): Record<string, string> {
   const fields: Record<string, string> = {}
   for (const [key, val] of Object.entries(obj)) {
-    fields[key] = typeForValue(val, key, namePrefix, pending)
+    fields[key] = typeForValue(val, key, registry, pending)
   }
   return fields
 }
@@ -71,9 +99,10 @@ export function toTypeScriptInterface(value: unknown, rootName = 'Root'): string
     throw new Error('toTypeScriptInterface requires a JSON object at the root')
   }
 
+  const registry: NameRegistry = { byKey: new Map(), used: new Set([rootName]) }
   const pending: PendingInterface[] = [{ name: rootName, value: value as Record<string, unknown> }]
-  // Sibling array elements (e.g. items in an array of objects) can each push
-  // a pending interface with the same generated name — merge those by name
+  // The same key appearing in multiple places (e.g. objects inside an array,
+  // or repeated nested keys) maps to one interface name — merge those by name
   // (union of fields, union of conflicting field types) instead of emitting
   // multiple TS `interface` declarations with the same name, which TS would
   // silently combine via declaration merging into a misleading shape.
@@ -82,7 +111,7 @@ export function toTypeScriptInterface(value: unknown, rootName = 'Root'): string
 
   while (pending.length > 0) {
     const next = pending.shift() as PendingInterface
-    const fields = computeFields(next.value, next.name, pending)
+    const fields = computeFields(next.value, registry, pending)
     if (fieldsByName.has(next.name)) {
       fieldsByName.set(next.name, mergeFieldMaps(fieldsByName.get(next.name) as Record<string, string>, fields))
     } else {

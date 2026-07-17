@@ -26,7 +26,7 @@ describe('computeJsonGraphLayout', () => {
     const child = result.nodes.find((n) => n.id === 'address')
     expect(root?.data.rows).toEqual([{ key: 'address', path: 'address', kind: 'object', count: 1, childId: 'address' }])
     expect(child?.data.rows).toEqual([{ key: 'city', path: 'address.city', kind: 'primitive', value: 'HCM' }])
-    expect(result.edges).toEqual([{ id: '$->address', source: '$', target: 'address' }])
+    expect(result.edges).toEqual([{ id: '$->address', source: '$', target: 'address', sourceHandle: 'address' }])
   })
 
   it('marks array rows with kind "array" and index-based child paths', () => {

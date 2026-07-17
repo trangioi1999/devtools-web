@@ -34,7 +34,12 @@ function GraphCanvas({ value, onCopyPath, onCopyValue, search }: GraphCanvasProp
     data: { rows: n.data.rows, onCopyPath, onCopyValue, onFocusNode, search },
   }))
 
-  const edges: Edge[] = layout.edges.map((e) => ({ id: e.id, source: e.source, target: e.target }))
+  const edges: Edge[] = layout.edges.map((e) => ({
+    id: e.id,
+    source: e.source,
+    target: e.target,
+    sourceHandle: e.sourceHandle,
+  }))
 
   return (
     <div className="h-full w-full relative">

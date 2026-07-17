@@ -27,6 +27,8 @@ export interface GraphEdge {
   id: string
   source: string
   target: string
+  /** Row-level handle id on the source card — the edge starts at the exact key row. */
+  sourceHandle: string
 }
 
 export interface JsonGraphLayoutResult {
@@ -80,7 +82,7 @@ function buildCards(root: unknown): { cards: Map<string, GraphNodeRow[]>; edges:
 
         if (cards.size + queue.length + 1 < MAX_NODES) {
           rows.push({ key, path, kind, count, childId: path })
-          edges.push({ id: `${id}->${path}`, source: id, target: path })
+          edges.push({ id: `${id}->${path}`, source: id, target: path, sourceHandle: path })
           queue.push({ id: path, segments: segPath, value: val as Record<string, unknown> | unknown[] })
         } else {
           rows.push({ key, path, kind, count })
