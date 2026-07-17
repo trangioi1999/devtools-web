@@ -6,6 +6,7 @@ import { escapeJsonString, unescapeJsonString } from '../../lib/jsonEscape'
 import { countJsonMatches } from '../../lib/jsonSearch'
 import { loadJsonViewerContent, saveJsonViewerContent } from './jsonViewerStore'
 import { SplitPane } from '../../components/SplitPane'
+import { SubTabs } from '../../components/SubTabs'
 import { CompareView } from './CompareView'
 import { ConvertModal } from './ConvertModal'
 import { JsonPathPanel } from './JsonPathPanel'
@@ -122,19 +123,15 @@ export function JsonViewerPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center gap-2 border-b border-slate-200 px-4 pt-2">
-        <button
-          onClick={() => setSubTab('editor')}
-          className={`px-3 py-1 text-sm rounded-t ${subTab === 'editor' ? 'bg-slate-800 text-white' : 'text-slate-600'}`}
-        >
-          Editor
-        </button>
-        <button
-          onClick={() => setSubTab('compare')}
-          className={`px-3 py-1 text-sm rounded-t ${subTab === 'compare' ? 'bg-slate-800 text-white' : 'text-slate-600'}`}
-        >
-          Compare
-        </button>
+      <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-1.5 bg-slate-50">
+        <SubTabs
+          tabs={[
+            { id: 'editor', label: 'Editor' },
+            { id: 'compare', label: 'Compare' },
+          ]}
+          active={subTab}
+          onChange={setSubTab}
+        />
       </div>
 
       {subTab === 'compare' ? (
