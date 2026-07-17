@@ -18,9 +18,9 @@ describe('toTypeScriptInterface', () => {
 
   it('generates a nested interface for a nested object', () => {
     const ts = toTypeScriptInterface({ address: { city: 'HCM' } })
-    expect(ts).toContain('interface RootAddress {')
+    expect(ts).toContain('interface Address {')
     expect(ts).toContain('city: string')
-    expect(ts).toContain('address: RootAddress')
+    expect(ts).toContain('address: Address')
   })
 
   it('generates an array type from a homogeneous array', () => {
@@ -50,7 +50,7 @@ describe('toTypeScriptInterface', () => {
 
   it('merges an array of objects into a single interface instead of duplicate declarations', () => {
     const ts = toTypeScriptInterface({ items: [{ a: 1 }, { b: 'x' }] })
-    const occurrences = ts.match(/interface RootItems \{/g)
+    const occurrences = ts.match(/interface Items \{/g)
     expect(occurrences).toHaveLength(1)
     expect(ts).toContain('a: number')
     expect(ts).toContain('b: string')
@@ -58,8 +58,30 @@ describe('toTypeScriptInterface', () => {
 
   it('merges array-of-object field types across elements when a field type differs', () => {
     const ts = toTypeScriptInterface({ items: [{ a: 1 }, { a: 'x' }] })
-    const occurrences = ts.match(/interface RootItems \{/g)
+    const occurrences = ts.match(/interface Items \{/g)
     expect(occurrences).toHaveLength(1)
     expect(ts).toContain('a: number | string')
+  })
+
+  it('names nested interfaces 1-1 with their JSON key in PascalCase', () => {
+    const ts = toTypeScriptInterface({ environment: { node: 'a' }, telemetry_logs: { level: 'info' } })
+    expect(ts).toContain('environment: Environment')
+    expect(ts).toContain('interface Environment {')
+    expect(ts).toContain('telemetry_logs: TelemetryLogs')
+    expect(ts).toContain('interface TelemetryLogs {')
+  })
+
+  it('suffixes a generated name that collides with the root name', () => {
+    const ts = toTypeScriptInterface({ root: { a: 1 } })
+    expect(ts).toContain('root: Root2')
+    expect(ts).toContain('interface Root2 {')
+  })
+
+  it('reuses one interface when the same key appears in multiple places', () => {
+    const ts = toTypeScriptInterface({ a: { meta: { x: 1 } }, b: { meta: { y: 2 } } })
+    const occurrences = ts.match(/interface Meta \{/g)
+    expect(occurrences).toHaveLength(1)
+    expect(ts).toContain('x: number')
+    expect(ts).toContain('y: number')
   })
 })
