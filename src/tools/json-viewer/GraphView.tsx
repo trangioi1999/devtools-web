@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ReactFlow, ReactFlowProvider, Background, Controls, useReactFlow, type Node, type Edge } from '@xyflow/react'
+import { ReactFlow, ReactFlowProvider, Background, Controls, useReactFlow, useUpdateNodeInternals, type Node, type Edge } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { X } from 'lucide-react'
 import { computeJsonGraphLayout, MAX_NODES } from '../../lib/jsonGraphLayout'
@@ -20,6 +20,7 @@ interface GraphCanvasProps {
 function GraphCanvas({ value, onCopyPath, onCopyValue, search }: GraphCanvasProps) {
   const [focusId, setFocusId] = useState<string | null>(null)
   const { fitView } = useReactFlow()
+  const updateNodeInternals = useUpdateNodeInternals()
 
   // A new document invalidates old paths — drop any active focus.
   useEffect(() => setFocusId(null), [value])
@@ -27,9 +28,12 @@ function GraphCanvas({ value, onCopyPath, onCopyValue, search }: GraphCanvasProp
   const layout = useMemo(() => computeJsonGraphLayout(value, focusId), [value, focusId])
 
   useEffect(() => {
-    const raf = requestAnimationFrame(() => fitView({ duration: 300, maxZoom: 1 }))
+    const raf = requestAnimationFrame(() => {
+      updateNodeInternals(layout.nodes.map((n) => n.id))
+      fitView({ duration: 300, maxZoom: 1 })
+    })
     return () => cancelAnimationFrame(raf)
-  }, [focusId, fitView])
+  }, [layout, focusId, fitView, updateNodeInternals])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Handle, Position, useUpdateNodeInternals, type NodeProps } from '@xyflow/react'
 import { Maximize2, Minimize2 } from 'lucide-react'
 import type { GraphNodeRow } from '../../lib/jsonGraphLayout'
@@ -20,6 +20,14 @@ export function GraphCard(props: NodeProps) {
   const { rows, onCopyPath, onCopyValue, onFocusNode, search, focused } = props.data as unknown as GraphCardProps
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
   const updateNodeInternals = useUpdateNodeInternals()
+
+  // Re-measure handle bounds whenever content changes size (rows swapped by
+  // focus mode, values expanded/collapsed, text wrapping) — React Flow only
+  // computes them on mount otherwise, leaving edges anchored to stale spots.
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => updateNodeInternals(props.id))
+    return () => cancelAnimationFrame(raf)
+  }, [rows, expandedRows, props.id, updateNodeInternals])
 
   const toggleRow = (path: string) => {
     setExpandedRows((prev) => {
@@ -116,7 +124,7 @@ export function GraphCard(props: NodeProps) {
           </div>
         )
       })}
-      <Handle type="target" position={Position.Left} className="!w-2 !h-2 !bg-slate-400" />
+      <Handle type="target" position={Position.Left} className="!w-2 !h-2 !bg-slate-400 !top-[13px]" />
     </div>
   )
 }
