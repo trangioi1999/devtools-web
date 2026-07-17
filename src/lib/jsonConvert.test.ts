@@ -10,7 +10,7 @@ describe('toYaml', () => {
 describe('toTypeScriptInterface', () => {
   it('generates an interface for a flat object', () => {
     const ts = toTypeScriptInterface({ a: 1, b: 'x', c: true })
-    expect(ts).toContain('interface Root {')
+    expect(ts).toContain('interface IRoot {')
     expect(ts).toContain('a: number')
     expect(ts).toContain('b: string')
     expect(ts).toContain('c: boolean')
@@ -18,9 +18,9 @@ describe('toTypeScriptInterface', () => {
 
   it('generates a nested interface for a nested object', () => {
     const ts = toTypeScriptInterface({ address: { city: 'HCM' } })
-    expect(ts).toContain('interface Address {')
+    expect(ts).toContain('interface IAddress {')
     expect(ts).toContain('city: string')
-    expect(ts).toContain('address: Address')
+    expect(ts).toContain('address: IAddress')
   })
 
   it('generates an array type from a homogeneous array', () => {
@@ -44,13 +44,13 @@ describe('toTypeScriptInterface', () => {
   })
 
   it('uses a custom root name when provided', () => {
-    const ts = toTypeScriptInterface({ a: 1 }, 'MyType')
-    expect(ts).toContain('interface MyType {')
+    const ts = toTypeScriptInterface({ a: 1 }, { rootName: 'MyType' })
+    expect(ts).toContain('interface IMyType {')
   })
 
   it('merges an array of objects into a single interface instead of duplicate declarations', () => {
     const ts = toTypeScriptInterface({ items: [{ a: 1 }, { b: 'x' }] })
-    const occurrences = ts.match(/interface Items \{/g)
+    const occurrences = ts.match(/interface IItems \{/g)
     expect(occurrences).toHaveLength(1)
     expect(ts).toContain('a: number')
     expect(ts).toContain('b: string')
@@ -58,30 +58,46 @@ describe('toTypeScriptInterface', () => {
 
   it('merges array-of-object field types across elements when a field type differs', () => {
     const ts = toTypeScriptInterface({ items: [{ a: 1 }, { a: 'x' }] })
-    const occurrences = ts.match(/interface Items \{/g)
+    const occurrences = ts.match(/interface IItems \{/g)
     expect(occurrences).toHaveLength(1)
     expect(ts).toContain('a: number | string')
   })
 
   it('names nested interfaces 1-1 with their JSON key in PascalCase', () => {
     const ts = toTypeScriptInterface({ environment: { node: 'a' }, telemetry_logs: { level: 'info' } })
-    expect(ts).toContain('environment: Environment')
-    expect(ts).toContain('interface Environment {')
-    expect(ts).toContain('telemetry_logs: TelemetryLogs')
-    expect(ts).toContain('interface TelemetryLogs {')
+    expect(ts).toContain('environment: IEnvironment')
+    expect(ts).toContain('interface IEnvironment {')
+    expect(ts).toContain('telemetry_logs: ITelemetryLogs')
+    expect(ts).toContain('interface ITelemetryLogs {')
   })
 
   it('suffixes a generated name that collides with the root name', () => {
     const ts = toTypeScriptInterface({ root: { a: 1 } })
-    expect(ts).toContain('root: Root2')
-    expect(ts).toContain('interface Root2 {')
+    expect(ts).toContain('root: IRoot2')
+    expect(ts).toContain('interface IRoot2 {')
   })
 
   it('reuses one interface when the same key appears in multiple places', () => {
     const ts = toTypeScriptInterface({ a: { meta: { x: 1 } }, b: { meta: { y: 2 } } })
-    const occurrences = ts.match(/interface Meta \{/g)
+    const occurrences = ts.match(/interface IMeta \{/g)
     expect(occurrences).toHaveLength(1)
     expect(ts).toContain('x: number')
     expect(ts).toContain('y: number')
+  })
+
+  it('applies the BE suffix and custom root name for API models', () => {
+    const ts = toTypeScriptInterface(
+      { template: { id: 1 } },
+      { rootName: 'GetTemplateEngineResponse', suffix: 'BE' },
+    )
+    expect(ts).toContain('interface IGetTemplateEngineResponseBE {')
+    expect(ts).toContain('template: ITemplateBE')
+    expect(ts).toContain('interface ITemplateBE {')
+  })
+
+  it('omits the I prefix when prefix is empty', () => {
+    const ts = toTypeScriptInterface({ address: { city: 'HCM' } }, { prefix: '' })
+    expect(ts).toContain('interface Root {')
+    expect(ts).toContain('address: Address')
   })
 })

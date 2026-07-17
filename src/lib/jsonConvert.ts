@@ -30,26 +30,43 @@ interface PendingInterface {
   value: Record<string, unknown>
 }
 
+export interface TsInterfaceOptions {
+  /** Name of the root interface before prefix/suffix are applied. */
+  rootName?: string
+  /** Prepended to every interface name (team convention: "I"). */
+  prefix?: string
+  /** Appended to every interface name (team convention: "BE" for API models). */
+  suffix?: string
+}
+
 // Interface names map 1-1 to the JSON key they came from ("environment" ->
-// "Environment", "telemetry_logs" -> "TelemetryLogs"). Two different keys can
-// collide on the same PascalCase name (e.g. "my_key" and "myKey") — the later
-// one gets a numeric suffix so declarations stay distinct.
+// "IEnvironment", "telemetry_logs" -> "ITelemetryLogs"), wrapped in the
+// configured prefix/suffix. Two different keys can collide on the same
+// PascalCase name (e.g. "my_key" and "myKey") — the later one gets a numeric
+// counter so declarations stay distinct.
 interface NameRegistry {
   byKey: Map<string, string>
   used: Set<string>
+  prefix: string
+  suffix: string
+}
+
+function decorateName(pascal: string, registry: NameRegistry): string {
+  let name = `${registry.prefix}${pascal}${registry.suffix}`
+  if (/^\d/.test(name)) name = `_${name}`
+  return name
 }
 
 function interfaceNameForKey(key: string, registry: NameRegistry): string {
   const existing = registry.byKey.get(key)
   if (existing) return existing
 
-  let base = pascalCase(key)
-  if (/^\d/.test(base)) base = `_${base}`
+  const base = decorateName(pascalCase(key), registry)
   let candidate = base
-  let suffix = 2
+  let counter = 2
   while (registry.used.has(candidate)) {
-    candidate = `${base}${suffix}`
-    suffix += 1
+    candidate = `${base}${counter}`
+    counter += 1
   }
   registry.used.add(candidate)
   registry.byKey.set(key, candidate)
@@ -94,13 +111,16 @@ function mergeFieldMaps(a: Record<string, string>, b: Record<string, string>): R
   return merged
 }
 
-export function toTypeScriptInterface(value: unknown, rootName = 'Root'): string {
+export function toTypeScriptInterface(value: unknown, options: TsInterfaceOptions = {}): string {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error('toTypeScriptInterface requires a JSON object at the root')
   }
 
-  const registry: NameRegistry = { byKey: new Map(), used: new Set([rootName]) }
-  const pending: PendingInterface[] = [{ name: rootName, value: value as Record<string, unknown> }]
+  const { rootName = 'Root', prefix = 'I', suffix = '' } = options
+  const registry: NameRegistry = { byKey: new Map(), used: new Set(), prefix, suffix }
+  const fullRootName = decorateName(pascalCase(rootName), registry)
+  registry.used.add(fullRootName)
+  const pending: PendingInterface[] = [{ name: fullRootName, value: value as Record<string, unknown> }]
   // The same key appearing in multiple places (e.g. objects inside an array,
   // or repeated nested keys) maps to one interface name — merge those by name
   // (union of fields, union of conflicting field types) instead of emitting
