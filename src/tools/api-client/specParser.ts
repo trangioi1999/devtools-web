@@ -1,12 +1,13 @@
 import { load } from 'js-yaml'
-import type { ApiSpec, Endpoint, EndpointParam } from './types'
+import type { ApiSpec, ApiModel, ApiResponse, Endpoint, EndpointParam, SchemaObject } from './types'
 
 const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'options', 'head'] as const
 
-function extractExample(content: Record<string, unknown> | undefined): unknown {
+function jsonContent(content: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
   if (!content) return undefined
-  const json = content['application/json'] as Record<string, unknown> | undefined
-  return json?.example
+  return (content['application/json'] ?? content['*/*'] ?? Object.values(content)[0]) as
+    | Record<string, unknown>
+    | undefined
 }
 
 function toEndpoint(path: string, method: string, operation: Record<string, unknown>): Endpoint {
@@ -17,22 +18,45 @@ function toEndpoint(path: string, method: string, operation: Record<string, unkn
       in: p.in as EndpointParam['in'],
       required: Boolean(p.required),
       example: p.example,
+      description: p.description as string | undefined,
+      schema: p.schema as SchemaObject | undefined,
     }),
   )
 
   const requestBody = operation.requestBody as Record<string, unknown> | undefined
-  const responses = operation.responses as Record<string, Record<string, unknown>> | undefined
-  const firstResponse = responses ? Object.values(responses)[0] : undefined
+  const requestContent = jsonContent(requestBody?.content as Record<string, unknown> | undefined)
+  const rawResponses = (operation.responses ?? {}) as Record<string, Record<string, unknown>>
+
+  const responses: ApiResponse[] = Object.entries(rawResponses).map(([status, r]) => {
+    const content = jsonContent(r.content as Record<string, unknown> | undefined)
+    return {
+      status,
+      description: r.description as string | undefined,
+      schema: content?.schema as SchemaObject | undefined,
+      example: content?.example,
+    }
+  })
 
   return {
     method: method.toUpperCase(),
     path,
     tag: tags?.[0] ?? 'default',
     summary: operation.summary as string | undefined,
+    description: operation.description as string | undefined,
+    operationId: operation.operationId as string | undefined,
+    deprecated: Boolean(operation.deprecated) || undefined,
     parameters,
-    requestBodyExample: extractExample(requestBody?.content as Record<string, unknown> | undefined),
-    responseExample: extractExample(firstResponse?.content as Record<string, unknown> | undefined),
+    requestBodyExample: requestContent?.example,
+    requestBodySchema: requestContent?.schema as SchemaObject | undefined,
+    responseExample: responses[0]?.example,
+    responses,
   }
+}
+
+/** '#/components/schemas/Foo' -> 'Foo' (last path segment). */
+export function refName(ref: string): string {
+  const parts = ref.split('/')
+  return parts[parts.length - 1]
 }
 
 export async function parseSpecFromText(
@@ -54,7 +78,13 @@ export async function parseSpecFromText(
     return { ok: false, error: 'Spec is missing a "paths" object — not a valid OpenAPI document.' }
   }
 
-  const doc = raw as { info?: { title?: string }; paths: Record<string, Record<string, unknown>> }
+  const doc = raw as {
+    info?: { title?: string; version?: string; description?: string }
+    servers?: { url?: string }[]
+    paths: Record<string, Record<string, unknown>>
+    components?: { schemas?: Record<string, SchemaObject> }
+    definitions?: Record<string, SchemaObject> // Swagger 2.0
+  }
   const endpoints: Endpoint[] = []
 
   for (const [path, pathItem] of Object.entries(doc.paths)) {
@@ -64,7 +94,20 @@ export async function parseSpecFromText(
     }
   }
 
-  return { ok: true, spec: { title: doc.info?.title ?? 'Untitled API', endpoints } }
+  const schemaMap = doc.components?.schemas ?? doc.definitions ?? {}
+  const models: ApiModel[] = Object.entries(schemaMap).map(([name, schema]) => ({ name, schema }))
+
+  return {
+    ok: true,
+    spec: {
+      title: doc.info?.title ?? 'Untitled API',
+      version: doc.info?.version,
+      description: doc.info?.description,
+      servers: (doc.servers ?? []).map((s) => s.url ?? '').filter(Boolean),
+      endpoints,
+      models,
+    },
+  }
 }
 
 export async function fetchSpec(

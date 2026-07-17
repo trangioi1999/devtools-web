@@ -4,7 +4,7 @@ export function toYaml(value: unknown): string {
   return dump(value)
 }
 
-function pascalCase(name: string): string {
+export function pascalCase(name: string): string {
   const parts = name.split(/[^a-zA-Z0-9]+/).filter(Boolean)
   if (parts.length === 0) return 'Field'
   return parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join('')
