@@ -35,6 +35,44 @@ export interface JsonGraphLayoutResult {
   nodes: GraphNode[]
   edges: GraphEdge[]
   truncated: boolean
+  /** Card ids on the root→focus chain (inclusive); empty when not focused. */
+  focusChain: string[]
+}
+
+/**
+ * Ids related to focusId: its ancestor chain up to the root, itself, and all
+ * of its descendants. Everything else is hidden while focused.
+ */
+export function computeRelatedIds(edges: GraphEdge[], focusId: string): { related: Set<string>; chain: string[] } {
+  const parentOf = new Map<string, string>()
+  const childrenOf = new Map<string, string[]>()
+  for (const e of edges) {
+    parentOf.set(e.target, e.source)
+    const list = childrenOf.get(e.source) ?? []
+    list.push(e.target)
+    childrenOf.set(e.source, list)
+  }
+
+  const chain: string[] = [focusId]
+  let cur = focusId
+  while (parentOf.has(cur)) {
+    cur = parentOf.get(cur) as string
+    chain.unshift(cur)
+  }
+
+  const related = new Set<string>(chain)
+  const queue = [focusId]
+  while (queue.length > 0) {
+    const id = queue.shift() as string
+    for (const child of childrenOf.get(id) ?? []) {
+      if (!related.has(child)) {
+        related.add(child)
+        queue.push(child)
+      }
+    }
+  }
+
+  return { related, chain }
 }
 
 export const MAX_NODES = 300
@@ -99,8 +137,18 @@ function buildCards(root: unknown): { cards: Map<string, GraphNodeRow[]>; edges:
   return { cards, edges, truncated }
 }
 
-export function computeJsonGraphLayout(value: unknown): JsonGraphLayoutResult {
-  const { cards, edges, truncated } = buildCards(value)
+export function computeJsonGraphLayout(value: unknown, focusId?: string | null): JsonGraphLayoutResult {
+  const built = buildCards(value)
+  const { truncated } = built
+  let { cards, edges } = built
+  let focusChain: string[] = []
+
+  if (focusId && cards.has(focusId)) {
+    const { related, chain } = computeRelatedIds(edges, focusId)
+    focusChain = chain
+    cards = new Map([...cards].filter(([id]) => related.has(id)))
+    edges = edges.filter((e) => related.has(e.source) && related.has(e.target))
+  }
 
   const g = new dagre.graphlib.Graph()
   g.setGraph({ rankdir: 'LR', nodesep: 40, ranksep: 80 })
@@ -125,5 +173,5 @@ export function computeJsonGraphLayout(value: unknown): JsonGraphLayoutResult {
     }
   })
 
-  return { nodes, edges, truncated }
+  return { nodes, edges, truncated, focusChain }
 }

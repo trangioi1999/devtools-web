@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeJsonGraphLayout, MAX_NODES } from './jsonGraphLayout'
+import { computeJsonGraphLayout, computeRelatedIds, MAX_NODES } from './jsonGraphLayout'
 
 describe('computeJsonGraphLayout', () => {
   it('returns a single card for a primitive root', () => {
@@ -58,5 +58,31 @@ describe('computeJsonGraphLayout', () => {
     const result = computeJsonGraphLayout({ address: { city: 'HCM' } })
     const [a, b] = result.nodes
     expect(a.position).not.toEqual(b.position)
+  })
+})
+
+describe('focus mode', () => {
+  const doc = { a: { b: { c: 1 } }, x: { y: 2 } }
+
+  it('keeps only ancestors, self, and descendants of the focused card', () => {
+    const result = computeJsonGraphLayout(doc, 'a')
+    const ids = result.nodes.map((n) => n.id).sort()
+    expect(ids).toEqual(['$', 'a', 'a.b'])
+    expect(result.focusChain).toEqual(['$', 'a'])
+    expect(result.edges.every((e) => ids.includes(e.source) && ids.includes(e.target))).toBe(true)
+  })
+
+  it('ignores an unknown focus id and returns the full graph', () => {
+    const full = computeJsonGraphLayout(doc)
+    const result = computeJsonGraphLayout(doc, 'nope')
+    expect(result.nodes.map((n) => n.id).sort()).toEqual(full.nodes.map((n) => n.id).sort())
+    expect(result.focusChain).toEqual([])
+  })
+
+  it('computeRelatedIds walks up to the root and down to all descendants', () => {
+    const { edges } = computeJsonGraphLayout(doc)
+    const { related, chain } = computeRelatedIds(edges, 'a.b')
+    expect(chain).toEqual(['$', 'a', 'a.b'])
+    expect([...related].sort()).toEqual(['$', 'a', 'a.b'])
   })
 })
