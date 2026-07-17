@@ -118,7 +118,11 @@ function buildCards(root: unknown): { cards: Map<string, GraphNodeRow[]>; edges:
         const count = Array.isArray(val) ? val.length : Object.keys(val).length
         const kind: GraphRowKind = Array.isArray(val) ? 'array' : 'object'
 
-        if (cards.size + queue.length + 1 < MAX_NODES) {
+        if (count === 0) {
+          // Empty containers get a badge row only — an empty child card and
+          // its edge are pure noise.
+          rows.push({ key, path, kind, count })
+        } else if (cards.size + queue.length + 1 < MAX_NODES) {
           rows.push({ key, path, kind, count, childId: path })
           edges.push({ id: `${id}->${path}`, source: id, target: path, sourceHandle: path })
           queue.push({ id: path, segments: segPath, value: val as Record<string, unknown> | unknown[] })

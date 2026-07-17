@@ -98,19 +98,28 @@ export function GraphCard(props: NodeProps) {
               </>
             ) : (
               <>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    if (row.childId) onFocusNode(row.childId)
-                  }}
-                  title={`Focus ${row.kind === 'array' ? `array [${row.count}]` : `object {${row.count}}`} — click to show only this branch`}
-                  className={`ml-auto font-semibold ${
-                    row.kind === 'array' ? 'text-orange-500 hover:text-orange-700' : 'text-sky-500 hover:text-sky-700'
-                  }`}
-                >
-                  {row.kind === 'array' ? `[${row.count}]` : `{${row.count}}`}
-                </button>
+                {row.childId ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (row.childId) onFocusNode(row.childId)
+                    }}
+                    title={`Focus ${row.kind === 'array' ? `array [${row.count}]` : `object {${row.count}}`} — click to show only this branch`}
+                    className={`ml-auto font-semibold ${
+                      row.kind === 'array' ? 'text-orange-500 hover:text-orange-700' : 'text-sky-500 hover:text-sky-700'
+                    }`}
+                  >
+                    {row.kind === 'array' ? `[${row.count}]` : `{${row.count}}`}
+                  </button>
+                ) : (
+                  <span
+                    title={row.kind === 'array' ? 'Empty array' : 'Empty object'}
+                    className="ml-auto font-semibold text-slate-400"
+                  >
+                    {row.kind === 'array' ? `[${row.count}]` : `{${row.count}}`}
+                  </span>
+                )}
                 {row.childId && (
                   <Handle
                     type="source"
