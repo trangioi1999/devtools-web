@@ -54,6 +54,16 @@ describe('computeJsonGraphLayout', () => {
     expect(truncatedRow).toBeDefined()
   })
 
+  it('does not create a child card or edge for empty containers', () => {
+    const result = computeJsonGraphLayout({ items: [], meta: {}, filled: { a: 1 } })
+    const ids = result.nodes.map((n) => n.id).sort()
+    expect(ids).toEqual(['$', 'filled'])
+    const root = result.nodes.find((n) => n.id === '$')
+    expect(root?.data.rows.find((r) => r.key === 'items')).toEqual({ key: 'items', path: 'items', kind: 'array', count: 0 })
+    expect(root?.data.rows.find((r) => r.key === 'meta')).toEqual({ key: 'meta', path: 'meta', kind: 'object', count: 0 })
+    expect(result.edges).toHaveLength(1)
+  })
+
   it('assigns non-overlapping positions with children in a later column', () => {
     const result = computeJsonGraphLayout({ a: 1, b: 2, address: { city: 'HCM' } })
     const root = result.nodes.find((n) => n.id === '$')
