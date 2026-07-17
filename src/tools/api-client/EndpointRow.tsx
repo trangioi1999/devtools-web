@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
-import type { Endpoint } from './types'
+import type { ApiModel, Endpoint } from './types'
 import { SchemaTable } from './SchemaTable'
 import { TryItOutForm } from './TryItOutForm'
 
@@ -24,7 +24,7 @@ export function MethodChip({ method }: { method: string }) {
   )
 }
 
-export function EndpointRow({ endpoint }: { endpoint: Endpoint }) {
+export function EndpointRow({ endpoint, models }: { endpoint: Endpoint; models?: ApiModel[] }) {
   const [open, setOpen] = useState(false)
   const [tryItOut, setTryItOut] = useState(false)
 
@@ -69,7 +69,7 @@ export function EndpointRow({ endpoint }: { endpoint: Endpoint }) {
           {endpoint.requestBodySchema && (
             <div>
               <h4 className="text-xs font-semibold text-slate-700 uppercase mb-1">Request body</h4>
-              <SchemaTable schema={endpoint.requestBodySchema} />
+              <SchemaTable schema={endpoint.requestBodySchema} models={models} />
             </div>
           )}
 
@@ -86,7 +86,7 @@ export function EndpointRow({ endpoint }: { endpoint: Endpoint }) {
                   </div>
                   {r.schema && (
                     <div className="mt-1 bg-slate-50 border border-slate-200 rounded p-2">
-                      <SchemaTable schema={r.schema} />
+                      <SchemaTable schema={r.schema} models={models} />
                     </div>
                   )}
                 </div>

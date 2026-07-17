@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import Editor from '@monaco-editor/react'
+import { Upload } from 'lucide-react'
 import type { ApiSpec } from './types'
 import { parseSpecFromText } from './specParser'
 import { diffApiSpecs, type ChangeKind } from '../../lib/apiSpecDiff'
@@ -35,6 +36,24 @@ function useParsedSpec(text: string): { spec: ApiSpec | null; error: string | nu
   }, [text])
 
   return state
+}
+
+function UploadButton({ onLoad }: { onLoad: (text: string) => void }) {
+  return (
+    <label className="ml-auto inline-flex items-center gap-1 text-xs text-slate-600 cursor-pointer hover:text-slate-900">
+      <Upload size={12} /> Upload
+      <input
+        type="file"
+        accept=".yaml,.yml,.json,application/x-yaml,application/json"
+        className="hidden"
+        onChange={async (e) => {
+          const file = e.target.files?.[0]
+          if (file) onLoad(await file.text())
+          e.target.value = ''
+        }}
+      />
+    </label>
+  )
 }
 
 export function CompareSpecsView() {
@@ -75,11 +94,17 @@ export function CompareSpecsView() {
       <SplitPane direction="vertical" initial={45} storageKey="devtools:api-client:compare-split-v">
         <SplitPane direction="horizontal" storageKey="devtools:api-client:compare-split-h">
           <div className="h-full flex flex-col">
-            <div className="px-3 py-1 text-xs text-slate-500 border-b border-slate-200">Old spec (YAML/JSON)</div>
+            <div className="flex items-center px-3 py-1 text-xs text-slate-500 border-b border-slate-200">
+              Old spec (YAML/JSON)
+              <UploadButton onLoad={handleLeft} />
+            </div>
             <Editor language="yaml" value={left} onChange={handleLeft} options={{ minimap: { enabled: false }, fontSize: 13 }} />
           </div>
           <div className="h-full flex flex-col">
-            <div className="px-3 py-1 text-xs text-slate-500 border-b border-slate-200">New spec (YAML/JSON)</div>
+            <div className="flex items-center px-3 py-1 text-xs text-slate-500 border-b border-slate-200">
+              New spec (YAML/JSON)
+              <UploadButton onLoad={handleRight} />
+            </div>
             <Editor language="yaml" value={right} onChange={handleRight} options={{ minimap: { enabled: false }, fontSize: 13 }} />
           </div>
         </SplitPane>

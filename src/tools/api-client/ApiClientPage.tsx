@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronDown, ChevronRight, Download } from 'lucide-react'
-import type { ApiSpec, Endpoint } from './types'
+import { ChevronDown, ChevronRight, Download, Upload } from 'lucide-react'
+import type { ApiModel, ApiSpec, Endpoint } from './types'
 import { parseSpecFromText, fetchSpec } from './specParser'
 import { EnvironmentManager } from './EnvironmentManager'
 import { EndpointRow } from './EndpointRow'
@@ -12,7 +12,7 @@ const SPEC_KEY = 'devtools:api-client:spec'
 
 type SubTab = 'docs' | 'compare'
 
-function TagSection({ tag, endpoints }: { tag: string; endpoints: Endpoint[] }) {
+function TagSection({ tag, endpoints, models }: { tag: string; endpoints: Endpoint[]; models?: ApiModel[] }) {
   const [open, setOpen] = useState(true)
 
   return (
@@ -26,7 +26,7 @@ function TagSection({ tag, endpoints }: { tag: string; endpoints: Endpoint[] }) 
         {tag}
         <span className="text-slate-400 font-normal">({endpoints.length})</span>
       </button>
-      {open && endpoints.map((e) => <EndpointRow key={`${e.method} ${e.path}`} endpoint={e} />)}
+      {open && endpoints.map((e) => <EndpointRow key={`${e.method} ${e.path}`} endpoint={e} models={models} />)}
     </div>
   )
 }
@@ -63,6 +63,16 @@ export function ApiClientPage() {
     setImportError(null)
     const result = await parseSpecFromText(importText)
     if (result.ok) applySpec(importText, result.spec)
+    else setImportError(result.error)
+  }
+
+  const handleFileUpload = async (file: File | undefined) => {
+    if (!file) return
+    setImportError(null)
+    const text = await file.text()
+    setImportText(text)
+    const result = await parseSpecFromText(text)
+    if (result.ok) applySpec(text, result.spec)
     else setImportError(result.error)
   }
 
@@ -146,6 +156,20 @@ export function ApiClientPage() {
                 </div>
               </label>
               <label className="text-sm">
+                Or upload a file (.yaml / .yml / .json)
+                <div>
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1 text-sm rounded bg-slate-200 text-slate-700 cursor-pointer hover:bg-slate-300">
+                    <Upload size={14} /> Choose file
+                    <input
+                      type="file"
+                      accept=".yaml,.yml,.json,application/x-yaml,application/json"
+                      className="hidden"
+                      onChange={(e) => handleFileUpload(e.target.files?.[0])}
+                    />
+                  </label>
+                </div>
+              </label>
+              <label className="text-sm">
                 Or paste spec (JSON/YAML)
                 <textarea
                   className="block w-full h-40 border border-slate-300 rounded px-2 py-1 font-mono text-xs"
@@ -218,7 +242,7 @@ export function ApiClientPage() {
                 />
 
                 {grouped.map(([tag, endpoints]) => (
-                  <TagSection key={tag} tag={tag} endpoints={endpoints} />
+                  <TagSection key={tag} tag={tag} endpoints={endpoints} models={spec.models} />
                 ))}
                 {grouped.length === 0 && <div className="text-sm text-slate-500">No endpoints match the filter.</div>}
 

@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react'
 import type { ApiModel } from './types'
 import { SchemaTable } from './SchemaTable'
 
-function ModelRow({ model }: { model: ApiModel }) {
+function ModelRow({ model, models }: { model: ApiModel; models: ApiModel[] }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -21,7 +21,7 @@ function ModelRow({ model }: { model: ApiModel }) {
       </button>
       {open && (
         <div className="border-t border-slate-200 px-3 py-2">
-          <SchemaTable schema={model.schema} />
+          <SchemaTable schema={model.schema} models={models} />
         </div>
       )}
     </div>
@@ -42,7 +42,7 @@ export function ModelsSection({ models }: { models: ApiModel[] }) {
         {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         Schemas <span className="text-slate-400 font-normal">({models.length})</span>
       </button>
-      {open && models.map((m) => <ModelRow key={m.name} model={m} />)}
+      {open && models.map((m) => <ModelRow key={m.name} model={m} models={models} />)}
     </div>
   )
 }
