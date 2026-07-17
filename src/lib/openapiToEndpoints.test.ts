@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { toCreateEndpoints } from './openapiToEndpoints'
+import { toCreateEndpoints, detectCommonPrefix } from './openapiToEndpoints'
 import type { Endpoint } from '../tools/api-client/types'
 
 function ep(method: string, path: string, operationId?: string): Endpoint {
@@ -51,5 +51,44 @@ describe('toCreateEndpoints', () => {
     const out = toCreateEndpoints([ep('GET', '/a-b'), ep('GET', '/a/b')])
     expect(out).toContain('getAB:')
     expect(out).toContain('getAB2:')
+  })
+
+  it('strips a leading path prefix from urls and derived keys', () => {
+    const out = toCreateEndpoints(
+      [ep('GET', '/client-api/v1/workforce/teams'), ep('PUT', '/client-api/v1/workforce/shift-assignments/{id}')],
+      { stripPrefix: '/client-api/v1' },
+    )
+    expect(out).toContain('getWorkforceTeams: `${basePath}/workforce/teams`,')
+    expect(out).toContain('(id: string) => `${basePath}/workforce/shift-assignments/${id}`,')
+    expect(out).not.toContain('client-api')
+  })
+
+  it('groups by tag first, then by method, when groupByTag is set', () => {
+    const a = { ...ep('GET', '/teams'), tag: 'teams' }
+    const b = { ...ep('POST', '/teams'), tag: 'teams' }
+    const c = { ...ep('GET', '/calendar'), tag: 'calendar' }
+    const out = toCreateEndpoints([a, c, b], { groupByTag: true })
+    const teamsIdx = out.indexOf('// ===== teams =====')
+    const calIdx = out.indexOf('// ===== calendar =====')
+    expect(teamsIdx).toBeGreaterThanOrEqual(0)
+    expect(calIdx).toBeGreaterThanOrEqual(0)
+    expect(out.indexOf('getTeams:')).toBeGreaterThan(teamsIdx)
+    expect(out.indexOf('postTeams:')).toBeGreaterThan(out.indexOf('getTeams:'))
+  })
+})
+
+describe('detectCommonPrefix', () => {
+  it('finds the shared leading segments', () => {
+    expect(
+      detectCommonPrefix([ep('GET', '/client-api/v1/workforce/teams'), ep('GET', '/client-api/v1/workforce/calendar')]),
+    ).toBe('/client-api/v1/workforce')
+  })
+
+  it('returns empty when paths diverge at the first segment', () => {
+    expect(detectCommonPrefix([ep('GET', '/a/x'), ep('GET', '/b/y')])).toBe('')
+  })
+
+  it('never swallows an entire path', () => {
+    expect(detectCommonPrefix([ep('GET', '/api/teams'), ep('GET', '/api')])).toBe('')
   })
 })
