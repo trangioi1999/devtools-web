@@ -12,6 +12,15 @@ const METHOD_COLORS: Record<string, string> = {
   DELETE: 'bg-red-600',
 }
 
+// Swagger-UI-style row tinting per method
+const ROW_TINTS: Record<string, string> = {
+  GET: 'border-sky-300 bg-sky-50/60',
+  POST: 'border-green-300 bg-green-50/60',
+  PUT: 'border-orange-300 bg-orange-50/60',
+  PATCH: 'border-teal-300 bg-teal-50/60',
+  DELETE: 'border-red-300 bg-red-50/60',
+}
+
 export function MethodChip({ method }: { method: string }) {
   return (
     <span
@@ -29,11 +38,11 @@ export function EndpointRow({ endpoint, models }: { endpoint: Endpoint; models?:
   const [tryItOut, setTryItOut] = useState(false)
 
   return (
-    <div className={`border rounded mb-1.5 ${open ? 'border-slate-300 shadow-sm' : 'border-slate-200'}`}>
+    <div className={`border rounded-lg mb-2 overflow-hidden ${ROW_TINTS[endpoint.method] ?? 'border-slate-200'} ${open ? 'shadow-sm' : ''}`}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-slate-50"
+        className="w-full flex items-center gap-3 px-3 py-2 text-left hover:brightness-[0.98]"
       >
         {open ? <ChevronDown size={14} className="text-slate-400 shrink-0" /> : <ChevronRight size={14} className="text-slate-400 shrink-0" />}
         <MethodChip method={endpoint.method} />
@@ -44,7 +53,7 @@ export function EndpointRow({ endpoint, models }: { endpoint: Endpoint; models?:
       </button>
 
       {open && (
-        <div className="border-t border-slate-200 px-4 py-3 flex flex-col gap-3">
+        <div className="border-t border-slate-200/70 bg-white px-4 py-3 flex flex-col gap-3">
           {endpoint.description && <p className="text-sm text-slate-600">{endpoint.description}</p>}
 
           {endpoint.parameters.length > 0 && (

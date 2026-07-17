@@ -78,16 +78,48 @@ function renderValue(path: string): string {
   return `(${args}) => \`${template}\``
 }
 
-export function toCreateEndpoints(endpoints: Endpoint[]): string {
-  const used = new Set<string>()
-  const byMethod = new Map<string, string[]>()
+/**
+ * Longest common leading path segments shared by every endpoint (never
+ * includes a param segment) — e.g. '/client-api/v1' for a spec whose paths
+ * all start with it. Empty string when paths diverge immediately.
+ */
+export function detectCommonPrefix(endpoints: Endpoint[]): string {
+  if (endpoints.length === 0) return ''
+  const segLists = endpoints.map((e) => e.path.split('/').filter(Boolean))
+  const first = segLists[0]
+  const common: string[] = []
+  for (let i = 0; i < first.length - 1; i++) {
+    const seg = first[i]
+    if (seg.startsWith('{')) break
+    // never swallow an entire path — each endpoint keeps at least one segment
+    if (segLists.every((l) => l[i] === seg && l.length > i + 1)) common.push(seg)
+    else break
+  }
+  return common.length > 0 ? `/${common.join('/')}` : ''
+}
 
+export interface CreateEndpointsOptions {
+  /** Leading path prefix to drop from every URL (e.g. '/client-api/v1'). */
+  stripPrefix?: string
+  /** Group output by tag first, then by method inside each tag. */
+  groupByTag?: boolean
+}
+
+function stripPathPrefix(path: string, prefix: string): string {
+  if (!prefix) return path
+  const clean = prefix.endsWith('/') ? prefix.slice(0, -1) : prefix
+  return path.startsWith(clean) ? path.slice(clean.length) || '/' : path
+}
+
+function renderMethodGroups(endpoints: Endpoint[], used: Set<string>, stripPrefix: string): string {
+  const byMethod = new Map<string, string[]>()
   const ordered = [...endpoints].sort(
     (a, b) => METHOD_ORDER.indexOf(a.method) - METHOD_ORDER.indexOf(b.method),
   )
 
   for (const ep of ordered) {
-    let key = ep.operationId ? camel(ep.operationId) : deriveKey(ep.method, ep.path)
+    const effPath = stripPathPrefix(ep.path, stripPrefix)
+    let key = ep.operationId ? camel(ep.operationId) : deriveKey(ep.method, effPath)
     let counter = 2
     const base = key
     while (used.has(key)) {
@@ -97,7 +129,7 @@ export function toCreateEndpoints(endpoints: Endpoint[]): string {
     used.add(key)
 
     const lines = byMethod.get(ep.method) ?? []
-    lines.push(`    ${key}: ${renderValue(ep.path)},`)
+    lines.push(`    ${key}: ${renderValue(effPath)},`)
     byMethod.set(ep.method, lines)
   }
 
@@ -108,6 +140,27 @@ export function toCreateEndpoints(endpoints: Endpoint[]): string {
     if (!lines) continue
     groups.push(`    // ${method}\n${lines.join('\n')}`)
   }
+  return groups.join('\n')
+}
 
-  return `function createEndpoints(basePath: string) {\n  return {\n${groups.join('\n')}\n  } as const;\n}`
+export function toCreateEndpoints(endpoints: Endpoint[], options: CreateEndpointsOptions = {}): string {
+  const { stripPrefix = '', groupByTag = false } = options
+  const used = new Set<string>()
+
+  let body: string
+  if (groupByTag) {
+    const byTag = new Map<string, Endpoint[]>()
+    for (const ep of endpoints) {
+      const list = byTag.get(ep.tag) ?? []
+      list.push(ep)
+      byTag.set(ep.tag, list)
+    }
+    body = [...byTag.entries()]
+      .map(([tag, eps]) => `    // ===== ${tag} =====\n${renderMethodGroups(eps, used, stripPrefix)}`)
+      .join('\n\n')
+  } else {
+    body = renderMethodGroups(endpoints, used, stripPrefix)
+  }
+
+  return `function createEndpoints(basePath: string) {\n  return {\n${body}\n  } as const;\n}`
 }

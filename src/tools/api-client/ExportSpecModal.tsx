@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { ApiSpec } from './types'
 import { schemasToTypeScript } from '../../lib/openapiToTs'
-import { toCreateEndpoints } from '../../lib/openapiToEndpoints'
+import { toCreateEndpoints, detectCommonPrefix } from '../../lib/openapiToEndpoints'
 
 interface ExportSpecModalProps {
   spec: ApiSpec
@@ -13,14 +13,16 @@ interface ExportSpecModalProps {
 export function ExportSpecModal({ spec, format, onClose, onCopied }: ExportSpecModalProps) {
   const [usePrefix, setUsePrefix] = useState(true)
   const [useBeSuffix, setUseBeSuffix] = useState(true)
+  const [stripPrefix, setStripPrefix] = useState(() => detectCommonPrefix(spec.endpoints))
+  const [groupByTag, setGroupByTag] = useState(true)
 
   const output = useMemo(() => {
-    if (format === 'endpoints') return toCreateEndpoints(spec.endpoints)
+    if (format === 'endpoints') return toCreateEndpoints(spec.endpoints, { stripPrefix: stripPrefix.trim(), groupByTag })
     return schemasToTypeScript(spec.models ?? [], {
       prefix: usePrefix ? 'I' : '',
       suffix: useBeSuffix ? 'BE' : '',
     })
-  }, [spec, format, usePrefix, useBeSuffix])
+  }, [spec, format, usePrefix, useBeSuffix, stripPrefix, groupByTag])
 
   const handleCopy = () => {
     navigator.clipboard.writeText(output)
@@ -33,7 +35,7 @@ export function ExportSpecModal({ spec, format, onClose, onCopied }: ExportSpecM
         <h2 className="font-semibold text-sm">
           {format === 'models' ? 'TypeScript models (from components.schemas)' : 'createEndpoints(basePath)'}
         </h2>
-        {format === 'models' && (
+        {format === 'models' ? (
           <div className="flex items-center gap-3 text-sm">
             <label className="flex items-center gap-1.5 text-slate-700 select-none">
               <input type="checkbox" checked={usePrefix} onChange={(e) => setUsePrefix(e.target.checked)} />
@@ -42,6 +44,22 @@ export function ExportSpecModal({ spec, format, onClose, onCopied }: ExportSpecM
             <label className="flex items-center gap-1.5 text-slate-700 select-none">
               <input type="checkbox" checked={useBeSuffix} onChange={(e) => setUseBeSuffix(e.target.checked)} />
               BE suffix
+            </label>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 text-sm flex-wrap">
+            <label className="flex items-center gap-1.5 text-slate-700">
+              Strip prefix
+              <input
+                value={stripPrefix}
+                onChange={(e) => setStripPrefix(e.target.value)}
+                placeholder="/client-api/v1"
+                className="px-2 py-0.5 border border-slate-300 rounded w-44 font-mono text-xs"
+              />
+            </label>
+            <label className="flex items-center gap-1.5 text-slate-700 select-none" title="Group endpoints by tag first, then by method inside each tag">
+              <input type="checkbox" checked={groupByTag} onChange={(e) => setGroupByTag(e.target.checked)} />
+              Group by tag
             </label>
           </div>
         )}

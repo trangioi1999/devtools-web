@@ -40,6 +40,24 @@ describe('diffApiSpecs', () => {
     expect(details).toContain('response 400 added')
   })
 
+  it('reports body property type changes with old and new types', () => {
+    const left = ep('PUT', '/a', {
+      requestBodySchema: { type: 'object', properties: { amount: { type: 'number' }, note: { type: 'string' } } },
+    })
+    const right = ep('PUT', '/a', {
+      requestBodySchema: { type: 'object', properties: { amount: { type: 'string' }, note: { type: 'string' } } },
+    })
+    const diff = diffApiSpecs(spec([left]), spec([right]))
+    expect(diff.endpoints[0].details).toContain("request body: property 'amount' type changed (number → string)")
+  })
+
+  it('reports a response model swap by ref name', () => {
+    const left = ep('GET', '/a', { responses: [{ status: '200', schema: { $ref: '#/components/schemas/OldModel' } }] })
+    const right = ep('GET', '/a', { responses: [{ status: '200', schema: { $ref: '#/components/schemas/NewModel' } }] })
+    const diff = diffApiSpecs(spec([left]), spec([right]))
+    expect(diff.endpoints[0].details).toContain('response 200: type changed (OldModel → NewModel)')
+  })
+
   it('reports unchanged specs as empty diff', () => {
     const a = spec([ep('GET', '/a')], [{ name: 'M', schema: { type: 'object' } }])
     expect(diffApiSpecs(a, a)).toEqual({ endpoints: [], models: [] })
