@@ -124,7 +124,7 @@ export function GraphCard(props: NodeProps) {
           </div>
         )
       })}
-      <Handle type="target" position={Position.Left} className="!w-2 !h-2 !bg-slate-400 !top-[13px]" />
+      <Handle type="target" position={Position.Left} className="!w-2 !h-2 !bg-slate-400" />
     </div>
   )
 }

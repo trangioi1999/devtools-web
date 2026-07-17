@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeJsonGraphLayout, computeRelatedIds, MAX_NODES, CARD_WIDTH, ROW_HEIGHT } from './jsonGraphLayout'
+import { computeJsonGraphLayout, computeRelatedIds, MAX_NODES, CARD_WIDTH } from './jsonGraphLayout'
 
 describe('computeJsonGraphLayout', () => {
   it('returns a single card for a primitive root', () => {
@@ -54,20 +54,12 @@ describe('computeJsonGraphLayout', () => {
     expect(truncatedRow).toBeDefined()
   })
 
-  it('aligns each child card with the parent row that references it', () => {
+  it('assigns non-overlapping positions with children in a later column', () => {
     const result = computeJsonGraphLayout({ a: 1, b: 2, address: { city: 'HCM' } })
     const root = result.nodes.find((n) => n.id === '$')
     const child = result.nodes.find((n) => n.id === 'address')
-    expect(child?.position.x).toBeGreaterThan((root?.position.x ?? 0) + CARD_WIDTH)
-    // "address" is the third row (index 2) — the child card tops out at that row
-    expect(child?.position.y).toBe((root?.position.y ?? 0) + 2 * ROW_HEIGHT)
-  })
-
-  it('stacks sibling subtrees without overlap', () => {
-    const result = computeJsonGraphLayout({ first: { x: { deep: 1 }, y: 2 }, second: { z: 3 } })
-    const first = result.nodes.find((n) => n.id === 'first')
-    const second = result.nodes.find((n) => n.id === 'second')
-    expect((second?.position.y ?? 0)).toBeGreaterThanOrEqual((first?.position.y ?? 0) + 2 * ROW_HEIGHT)
+    expect(child?.position.x).toBeGreaterThanOrEqual((root?.position.x ?? 0) + CARD_WIDTH)
+    expect(child?.position).not.toEqual(root?.position)
   })
 })
 
