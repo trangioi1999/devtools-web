@@ -100,4 +100,11 @@ describe('toTypeScriptInterface', () => {
     expect(ts).toContain('interface Root {')
     expect(ts).toContain('address: Address')
   })
+
+  it('emits the export keyword before every interface', () => {
+    const ts = toTypeScriptInterface({ a: 1, env: { b: 2 } })
+    expect(ts).toContain('export interface IRoot {')
+    expect(ts).toContain('export interface IEnv {')
+    expect(ts.match(/export interface /g)).toHaveLength(2)
+  })
 })

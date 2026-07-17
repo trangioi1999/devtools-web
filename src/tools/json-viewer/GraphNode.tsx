@@ -11,12 +11,13 @@ interface GraphCardProps {
   onCopyValue: (value: unknown) => void
   onFocusNode: (id: string) => void
   search: string
+  focused: boolean
 }
 
 const LONG_VALUE_THRESHOLD = 28
 
 export function GraphCard(props: NodeProps) {
-  const { rows, onCopyPath, onCopyValue, onFocusNode, search } = props.data as unknown as GraphCardProps
+  const { rows, onCopyPath, onCopyValue, onFocusNode, search, focused } = props.data as unknown as GraphCardProps
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
   const updateNodeInternals = useUpdateNodeInternals()
 
@@ -32,7 +33,11 @@ export function GraphCard(props: NodeProps) {
   }
 
   return (
-    <div className="rounded border border-slate-300 bg-white shadow-sm text-xs font-mono min-w-[200px] max-w-[280px]">
+    <div
+      className={`rounded border bg-white shadow-sm text-xs font-mono min-w-[200px] max-w-[280px] ${
+        focused ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-300'
+      }`}
+    >
       {rows.map((row) => {
         const isContainer = row.kind !== 'primitive'
         const valueText = isContainer ? '' : JSON.stringify(row.value)
@@ -43,7 +48,10 @@ export function GraphCard(props: NodeProps) {
           <div key={row.key} className="relative flex items-start gap-2 px-2 py-1 border-b border-slate-100 last:border-b-0">
             <button
               type="button"
-              onClick={() => onCopyPath(row.path)}
+              onClick={(e) => {
+                e.stopPropagation()
+                onCopyPath(row.path)
+              }}
               title={`Copy path: ${row.path}`}
               className={`hover:underline shrink-0 ${isContainer ? 'font-semibold text-blue-800' : 'text-blue-600'} ${
                 matchesText(row.key, search) ? 'bg-yellow-200' : ''
@@ -55,7 +63,10 @@ export function GraphCard(props: NodeProps) {
               <>
                 <button
                   type="button"
-                  onClick={() => onCopyValue(row.value)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onCopyValue(row.value)
+                  }}
                   title={isExpanded ? 'Copy value' : valueText}
                   className={`ml-auto text-right hover:underline ${valueClassName(row.value)} ${
                     isExpanded ? 'whitespace-pre-wrap break-all' : 'truncate max-w-[150px]'
@@ -66,7 +77,10 @@ export function GraphCard(props: NodeProps) {
                 {isLong && (
                   <button
                     type="button"
-                    onClick={() => toggleRow(row.path)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleRow(row.path)
+                    }}
                     title={isExpanded ? 'Collapse value' : 'Show full value'}
                     className="shrink-0 text-slate-400 hover:text-slate-700 mt-0.5"
                   >
@@ -78,8 +92,11 @@ export function GraphCard(props: NodeProps) {
               <>
                 <button
                   type="button"
-                  onClick={() => row.childId && onFocusNode(row.childId)}
-                  title={row.kind === 'array' ? `Array — ${row.count} items` : `Object — ${row.count} keys`}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (row.childId) onFocusNode(row.childId)
+                  }}
+                  title={`Focus ${row.kind === 'array' ? `array [${row.count}]` : `object {${row.count}}`} — click to show only this branch`}
                   className={`ml-auto font-semibold ${
                     row.kind === 'array' ? 'text-orange-500 hover:text-orange-700' : 'text-sky-500 hover:text-sky-700'
                   }`}

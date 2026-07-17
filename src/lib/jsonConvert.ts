@@ -143,7 +143,7 @@ export function toTypeScriptInterface(value: unknown, options: TsInterfaceOption
   const rendered = order.map((name) => {
     const fields = fieldsByName.get(name) as Record<string, string>
     const lines = Object.entries(fields).map(([key, type]) => `  ${key}: ${type}`)
-    return `interface ${name} {\n${lines.join('\n')}\n}`
+    return `export interface ${name} {\n${lines.join('\n')}\n}`
   })
 
   return rendered.join('\n\n')
