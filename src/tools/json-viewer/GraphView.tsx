@@ -63,7 +63,6 @@ function GraphCanvas({ value, onCopyPath, onCopyValue, search }: GraphCanvasProp
       source: e.source,
       target: e.target,
       sourceHandle: e.sourceHandle,
-      type: 'smoothstep',
       style: onChain ? FOCUS_EDGE_STYLE : EDGE_STYLE,
     }
   })

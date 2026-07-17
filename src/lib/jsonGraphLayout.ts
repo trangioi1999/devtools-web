@@ -1,3 +1,4 @@
+import dagre from 'dagre'
 import { buildJsonPath, type PathSegment } from './jsonPath'
 
 export type GraphRowKind = 'primitive' | 'array' | 'object'
@@ -78,8 +79,6 @@ export const MAX_NODES = 300
 export const CARD_WIDTH = 280
 export const ROW_HEIGHT = 26
 export const HEADER_HEIGHT = 0
-const COLUMN_GAP = 100
-const SIBLING_GAP = 28
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -151,59 +150,28 @@ export function computeJsonGraphLayout(value: unknown, focusId?: string | null):
     edges = edges.filter((e) => related.has(e.source) && related.has(e.target))
   }
 
-  const positions = layoutRowAligned(cards, edges)
+  const g = new dagre.graphlib.Graph()
+  g.setGraph({ rankdir: 'LR', nodesep: 40, ranksep: 90 })
+  g.setDefaultEdgeLabel(() => ({}))
 
-  const nodes: GraphNode[] = [...cards.entries()].map(([id, rows]) => ({
-    id,
-    type: 'card',
-    position: positions.get(id) ?? { x: 0, y: 0 },
-    data: { rows },
-  }))
+  for (const [id, rows] of cards) {
+    g.setNode(id, { width: CARD_WIDTH, height: HEADER_HEIGHT + rows.length * ROW_HEIGHT })
+  }
+  for (const edge of edges) {
+    g.setEdge(edge.source, edge.target)
+  }
+
+  dagre.layout(g)
+
+  const nodes: GraphNode[] = [...cards.entries()].map(([id, rows]) => {
+    const pos = g.node(id)
+    return {
+      id,
+      type: 'card',
+      position: { x: pos.x - pos.width / 2, y: pos.y - pos.height / 2 },
+      data: { rows },
+    }
+  })
 
   return { nodes, edges, truncated, focusChain }
-}
-
-/**
- * Left-to-right layout where each child card's top edge lines up with the
- * parent row that references it, so edges run horizontally from a key row
- * straight into its card (JSON Crack style) instead of looping to a
- * vertically-centered child. Siblings and their subtrees stack downward
- * without overlap because placement is a depth-first sweep: a child may sit
- * no higher than the bottom of the previous sibling's subtree.
- */
-function layoutRowAligned(cards: Map<string, GraphNodeRow[]>, edges: GraphEdge[]): Map<string, { x: number; y: number }> {
-  const childrenOf = new Map<string, string[]>()
-  for (const e of edges) {
-    const list = childrenOf.get(e.source) ?? []
-    list.push(e.target)
-    childrenOf.set(e.source, list)
-  }
-
-  const positions = new Map<string, { x: number; y: number }>()
-  const heightOf = (id: string) => HEADER_HEIGHT + (cards.get(id)?.length ?? 0) * ROW_HEIGHT
-
-  function place(id: string, depth: number, desiredY: number, minY: number): number {
-    const y = Math.max(desiredY, minY)
-    positions.set(id, { x: depth * (CARD_WIDTH + COLUMN_GAP), y })
-
-    const rows = cards.get(id) ?? []
-    let bottom = y + heightOf(id)
-    let childMin = Number.NEGATIVE_INFINITY
-    for (const childId of childrenOf.get(id) ?? []) {
-      const rowIndex = Math.max(0, rows.findIndex((r) => r.childId === childId))
-      const rowAlignedY = y + HEADER_HEIGHT + rowIndex * ROW_HEIGHT
-      const subtreeBottom = place(childId, depth + 1, rowAlignedY, childMin)
-      childMin = subtreeBottom + SIBLING_GAP
-      bottom = Math.max(bottom, subtreeBottom)
-    }
-    return bottom
-  }
-
-  const roots = [...cards.keys()].filter((id) => !edges.some((e) => e.target === id))
-  let cursor = 0
-  for (const root of roots) {
-    cursor = place(root, 0, cursor, cursor) + SIBLING_GAP
-  }
-
-  return positions
 }
