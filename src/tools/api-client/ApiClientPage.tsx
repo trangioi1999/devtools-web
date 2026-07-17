@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronDown, ChevronRight, Download, Upload } from 'lucide-react'
+import { ChevronDown, ChevronRight, Download, FileUp, Globe, Upload } from 'lucide-react'
 import type { ApiModel, ApiSpec, Endpoint } from './types'
 import { parseSpecFromText, fetchSpec } from './specParser'
 import { EnvironmentManager } from './EnvironmentManager'
@@ -7,6 +7,7 @@ import { EndpointRow } from './EndpointRow'
 import { ModelsSection } from './ModelsSection'
 import { ExportSpecModal } from './ExportSpecModal'
 import { CompareSpecsView } from './CompareSpecsView'
+import { SubTabs } from '../../components/SubTabs'
 
 const SPEC_KEY = 'devtools:api-client:spec'
 
@@ -120,19 +121,15 @@ export function ApiClientPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center gap-2 border-b border-slate-200 px-4 pt-2">
-        <button
-          onClick={() => setSubTab('docs')}
-          className={`px-3 py-1 text-sm rounded-t ${subTab === 'docs' ? 'bg-slate-800 text-white' : 'text-slate-600'}`}
-        >
-          Docs
-        </button>
-        <button
-          onClick={() => setSubTab('compare')}
-          className={`px-3 py-1 text-sm rounded-t ${subTab === 'compare' ? 'bg-slate-800 text-white' : 'text-slate-600'}`}
-        >
-          Compare
-        </button>
+      <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-1.5 bg-slate-50">
+        <SubTabs
+          tabs={[
+            { id: 'docs', label: 'Docs' },
+            { id: 'compare', label: 'Compare' },
+          ]}
+          active={subTab}
+          onChange={setSubTab}
+        />
       </div>
 
       {subTab === 'compare' ? (
@@ -142,45 +139,70 @@ export function ApiClientPage() {
           <EnvironmentManager />
 
           {!spec && (
-            <div className="p-4 flex flex-col gap-3 max-w-xl">
-              <label className="text-sm">
-                Import from URL
-                <div className="flex gap-2">
+            <div className="flex-1 overflow-auto bg-slate-50">
+              <div className="max-w-2xl mx-auto px-6 py-10">
+                <div className="text-center mb-6">
+                  <h1 className="text-2xl font-bold text-slate-900">Import an OpenAPI spec</h1>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Swagger-style docs, try-it-out, TypeScript exports, and spec comparison — all from one YAML/JSON file.
+                  </p>
+                </div>
+
+                <label
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    handleFileUpload(e.dataTransfer.files?.[0])
+                  }}
+                  className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 rounded-xl bg-white py-10 cursor-pointer hover:border-sky-400 hover:bg-sky-50/40 transition-colors"
+                >
+                  <div className="w-11 h-11 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center">
+                    <FileUp size={20} />
+                  </div>
+                  <div className="text-sm font-medium text-slate-700">Drop your spec here, or click to browse</div>
+                  <div className="text-xs text-slate-400">.yaml · .yml · .json</div>
                   <input
-                    className="flex-1 border border-slate-300 rounded px-2 py-1"
-                    value={importUrl}
-                    onChange={(e) => setImportUrl(e.target.value)}
-                    placeholder="https://api.example.com/openapi.json"
+                    type="file"
+                    accept=".yaml,.yml,.json,application/x-yaml,application/json"
+                    className="hidden"
+                    onChange={(e) => handleFileUpload(e.target.files?.[0])}
                   />
-                  <button onClick={handleImportUrl} className="px-3 py-1 text-sm rounded bg-slate-800 text-white">Fetch</button>
+                </label>
+
+                <div className="flex items-center gap-3 my-5 text-xs text-slate-400">
+                  <div className="flex-1 h-px bg-slate-200" />
+                  or
+                  <div className="flex-1 h-px bg-slate-200" />
                 </div>
-              </label>
-              <label className="text-sm">
-                Or upload a file (.yaml / .yml / .json)
-                <div>
-                  <label className="inline-flex items-center gap-1.5 px-3 py-1 text-sm rounded bg-slate-200 text-slate-700 cursor-pointer hover:bg-slate-300">
-                    <Upload size={14} /> Choose file
-                    <input
-                      type="file"
-                      accept=".yaml,.yml,.json,application/x-yaml,application/json"
-                      className="hidden"
-                      onChange={(e) => handleFileUpload(e.target.files?.[0])}
-                    />
+
+                <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col gap-4 shadow-sm">
+                  <label className="text-sm font-medium text-slate-700">
+                    <span className="flex items-center gap-1.5 mb-1"><Globe size={14} className="text-slate-400" /> Import from URL</span>
+                    <div className="flex gap-2">
+                      <input
+                        className="flex-1 border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-400"
+                        value={importUrl}
+                        onChange={(e) => setImportUrl(e.target.value)}
+                        placeholder="https://api.example.com/openapi.json"
+                      />
+                      <button onClick={handleImportUrl} className="px-4 py-1.5 text-sm rounded-lg bg-slate-900 text-white hover:bg-slate-700">Fetch</button>
+                    </div>
                   </label>
+                  <label className="text-sm font-medium text-slate-700">
+                    <span className="flex items-center gap-1.5 mb-1"><Upload size={14} className="text-slate-400" /> Paste spec (JSON/YAML)</span>
+                    <textarea
+                      className="block w-full h-36 border border-slate-300 rounded-lg px-3 py-2 font-mono text-xs font-normal focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-400"
+                      value={importText}
+                      onChange={(e) => setImportText(e.target.value)}
+                      placeholder="openapi: 3.0.0&#10;info:&#10;  title: My API"
+                    />
+                    <button onClick={handleImportText} className="mt-2 px-4 py-1.5 text-sm rounded-lg bg-slate-900 text-white hover:bg-slate-700">
+                      Parse spec
+                    </button>
+                  </label>
+                  {importError && <div className="text-sm text-red-600">{importError}</div>}
                 </div>
-              </label>
-              <label className="text-sm">
-                Or paste spec (JSON/YAML)
-                <textarea
-                  className="block w-full h-40 border border-slate-300 rounded px-2 py-1 font-mono text-xs"
-                  value={importText}
-                  onChange={(e) => setImportText(e.target.value)}
-                />
-              </label>
-              <button onClick={handleImportText} className="self-start px-3 py-1 text-sm rounded bg-slate-800 text-white">
-                Parse spec
-              </button>
-              {importError && <div className="text-sm text-red-600">{importError}</div>}
+              </div>
             </div>
           )}
 

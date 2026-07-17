@@ -1,10 +1,20 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 body {
+  font-family: var(--font-sans);
   color: #1e293b;
+}
+
+code, pre, .font-mono {
+  font-family: var(--font-mono);
 }

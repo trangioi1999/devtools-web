@@ -78,10 +78,14 @@ describe('toCreateEndpoints', () => {
 })
 
 describe('detectCommonPrefix', () => {
-  it('finds the shared leading segments', () => {
+  it('stops at the version segment even when more is shared', () => {
     expect(
       detectCommonPrefix([ep('GET', '/client-api/v1/workforce/teams'), ep('GET', '/client-api/v1/workforce/calendar')]),
-    ).toBe('/client-api/v1/workforce')
+    ).toBe('/client-api/v1')
+  })
+
+  it('finds the shared leading segments when there is no version', () => {
+    expect(detectCommonPrefix([ep('GET', '/internal/teams'), ep('GET', '/internal/calendar')])).toBe('/internal')
   })
 
   it('returns empty when paths diverge at the first segment', () => {

@@ -94,6 +94,9 @@ export function detectCommonPrefix(endpoints: Endpoint[]): string {
     // never swallow an entire path — each endpoint keeps at least one segment
     if (segLists.every((l) => l[i] === seg && l.length > i + 1)) common.push(seg)
     else break
+    // stop at the API version segment: '/client-api/v1/workforce/...'
+    // should suggest '/client-api/v1', not the whole shared subtree
+    if (/^v\d+$/i.test(seg)) break
   }
   return common.length > 0 ? `/${common.join('/')}` : ''
 }
