@@ -11,6 +11,7 @@ import { CompareView } from './CompareView'
 import { ConvertModal } from './ConvertModal'
 import { JsonPathPanel } from './JsonPathPanel'
 import { TreeView } from './TreeView'
+import { GraphView } from './GraphView'
 import { TableView } from './TableView'
 import { TextView } from './TextView'
 import { ChartView } from './ChartView'
@@ -19,7 +20,7 @@ import { Toast } from './Toast'
 import { useToast } from './useToast'
 
 type SubTab = 'editor' | 'compare'
-type ViewMode = 'tree' | 'table' | 'text' | 'chart'
+type ViewMode = 'tree' | 'graph' | 'text' | 'table' | 'chart'
 
 function rootCountLabel(value: unknown): string {
   if (Array.isArray(value)) return `${value.length} item${value.length === 1 ? '' : 's'} at root`
@@ -185,8 +186,9 @@ export function JsonViewerPage() {
                   <SubTabs
                     tabs={[
                       { id: 'tree', label: 'Tree' },
-                      { id: 'table', label: 'Table' },
+                      { id: 'graph', label: 'Graph' },
                       { id: 'text', label: 'Text' },
+                      { id: 'table', label: 'Table' },
                       { id: 'chart', label: 'Chart' },
                     ]}
                     active={viewMode}
@@ -206,7 +208,7 @@ export function JsonViewerPage() {
                     </div>
                   )}
                 </div>
-                <div className="flex-1 min-h-0 overflow-auto px-4 py-3">
+                <div className={`flex-1 min-h-0 ${viewMode === 'graph' ? 'overflow-hidden' : 'overflow-auto px-4 py-3'}`}>
                   {!parsed.ok ? (
                     <div className="text-sm text-delete">
                       {parsed.errors.map((e, i) => (
@@ -215,6 +217,8 @@ export function JsonViewerPage() {
                     </div>
                   ) : viewMode === 'tree' ? (
                     <TreeView value={parsed.value} onCopyPath={handleCopyPath} onCopyValue={handleCopyValue} search={search} />
+                  ) : viewMode === 'graph' ? (
+                    <GraphView value={parsed.value} onCopyPath={handleCopyPath} onCopyValue={handleCopyValue} search={search} />
                   ) : viewMode === 'table' ? (
                     <TableView value={parsed.value} onCopyPath={handleCopyPath} onCopyValue={handleCopyValue} search={search} />
                   ) : viewMode === 'text' ? (

@@ -4,15 +4,15 @@ import { valueClassName } from '../../lib/jsonValueStyle'
 
 const STATUS_BORDER: Record<DiffStatus, string> = {
   unchanged: 'border-transparent',
-  added: 'border-str',
-  removed: 'border-delete',
-  modified: 'border-accent',
+  added: 'border-added',
+  removed: 'border-removed',
+  modified: 'border-modified',
 }
 
 const STATUS_BADGES: Record<Exclude<DiffStatus, 'unchanged'>, { label: string; className: string }> = {
-  added: { label: '+', className: 'text-str' },
-  removed: { label: '−', className: 'text-delete' },
-  modified: { label: '~', className: 'text-accent-700' },
+  added: { label: '+', className: 'text-added' },
+  removed: { label: '−', className: 'text-removed' },
+  modified: { label: '~', className: 'text-modified' },
 }
 
 function formatValue(value: unknown): string {
@@ -95,11 +95,11 @@ function NodeView({ node, path, showUnchanged, collapsed, onToggle }: NodeViewPr
         <>
           <span className="font-mono text-sm line-through text-neutral-500 break-all">{formatValue(node.oldValue)}</span>
           <span className="text-neutral-400 text-xs mt-0.5">→</span>
-          <span className="font-mono text-sm text-str break-all">{formatValue(node.value)}</span>
+          <span className="font-mono text-sm text-added break-all">{formatValue(node.value)}</span>
         </>
       ) : (
         <span
-          className={`font-mono text-sm break-all ${node.status === 'removed' ? 'line-through text-delete' : node.status === 'added' ? 'text-str' : valueClassName(node.value)}`}
+          className={`font-mono text-sm break-all ${node.status === 'removed' ? 'line-through text-removed' : node.status === 'added' ? 'text-added' : valueClassName(node.value)}`}
         >
           {formatValue(node.status === 'removed' ? node.oldValue : node.value)}
         </span>

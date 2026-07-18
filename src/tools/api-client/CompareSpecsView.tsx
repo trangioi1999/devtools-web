@@ -13,14 +13,14 @@ const LEFT_KEY = 'devtools:api-client:compare-left'
 const RIGHT_KEY = 'devtools:api-client:compare-right'
 
 const KIND_BORDER: Record<ChangeKind, string> = {
-  added: 'border-str',
-  removed: 'border-delete',
-  modified: 'border-accent',
+  added: 'border-added',
+  removed: 'border-removed',
+  modified: 'border-modified',
 }
 const KIND_STYLES: Record<ChangeKind, { badge: string; label: string }> = {
-  added: { badge: 'text-str', label: '+' },
-  removed: { badge: 'text-delete', label: '−' },
-  modified: { badge: 'text-accent-700', label: '~' },
+  added: { badge: 'text-added', label: '+' },
+  removed: { badge: 'text-removed', label: '−' },
+  modified: { badge: 'text-modified', label: '~' },
 }
 
 const EDITOR_OPTIONS = { minimap: { enabled: false }, fontSize: 13, fontFamily: 'JetBrains Mono, monospace' }
@@ -103,9 +103,7 @@ export function CompareSpecsView() {
         <SplitPane direction="horizontal" storageKey="devtools:api-client:compare-split-h">
           <div className="h-full flex flex-col">
             <div className="flex items-center px-3 py-2 border-b border-divider">
-              <h6 className="m-0 text-neutral-600 normal-case tracking-normal" style={{ fontSize: 12, letterSpacing: 0 }}>
-                Old spec (YAML/JSON)
-              </h6>
+              <h6 className="m-0 text-neutral-600">Left</h6>
               <UploadButton onLoad={handleLeft} />
             </div>
             <div className="flex-1 min-h-0">
@@ -121,9 +119,7 @@ export function CompareSpecsView() {
           </div>
           <div className="h-full flex flex-col">
             <div className="flex items-center px-3 py-2 border-b border-divider">
-              <h6 className="m-0 text-neutral-600 normal-case tracking-normal" style={{ fontSize: 12, letterSpacing: 0 }}>
-                New spec (YAML/JSON)
-              </h6>
+              <h6 className="m-0 text-neutral-600">Right</h6>
               <UploadButton onLoad={handleRight} />
             </div>
             <div className="flex-1 min-h-0">
@@ -139,75 +135,84 @@ export function CompareSpecsView() {
           </div>
         </SplitPane>
 
-        <div className="h-full overflow-auto p-3">
-          {!left.trim() || !right.trim() ? (
-            <div className="text-sm text-muted">Paste the old spec on the left and the new spec on the right to see what changed.</div>
-          ) : (
-            <>
-              {leftParsed.error && <div className="text-sm text-delete">Left: {leftParsed.error}</div>}
-              {rightParsed.error && <div className="text-sm text-delete">Right: {rightParsed.error}</div>}
-            </>
-          )}
-
+        <div className="h-full flex flex-col min-h-0">
           {diff && counts && (
-            <>
-              <div className="flex items-center gap-2 mb-4">
-                <span className="tag tag-outline" style={{ borderColor: 'var(--color-str)', color: 'var(--color-str)' }}>
+            <div className="flex items-center gap-3 px-3 py-2 border-b border-divider text-[13px]">
+              <span className="font-semibold text-neutral-600">Differences</span>
+              <span className="ml-auto flex items-center gap-2">
+                <span className="tag tag-outline" style={{ borderColor: 'var(--color-added)', color: 'var(--color-added)' }}>
                   +{counts.added} added
                 </span>
-                <span className="tag tag-outline" style={{ borderColor: 'var(--color-delete)', color: 'var(--color-delete)' }}>
+                <span className="tag tag-outline" style={{ borderColor: 'var(--color-removed)', color: 'var(--color-removed)' }}>
                   −{counts.removed} removed
                 </span>
-                <span className="tag tag-outline">~{counts.modified} modified</span>
-              </div>
-
-              {diff.endpoints.length === 0 && diff.models.length === 0 && (
-                <div className="text-sm text-muted italic">No differences — endpoints and models are identical.</div>
-              )}
-
-              {diff.endpoints.length > 0 && (
-                <div className="mb-6">
-                  <h6 className="text-neutral-600 mb-2">Endpoints</h6>
-                  {diff.endpoints.map((c) => (
-                    <div key={`${c.method} ${c.path}`} className={`border-l-2 pl-2 py-1.5 mb-1 ${KIND_BORDER[c.kind]}`}>
-                      <div className="flex items-center gap-2">
-                        <span className={`font-mono text-xs font-bold ${KIND_STYLES[c.kind].badge}`}>{KIND_STYLES[c.kind].label}</span>
-                        <MethodChip method={c.method} />
-                        <span className="font-mono text-sm">{c.path}</span>
-                      </div>
-                      {c.details.length > 0 && (
-                        <ul className="mt-1 ml-8 text-xs text-muted list-disc">
-                          {c.details.map((d, i) => (
-                            <li key={i}>{d}</li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {diff.models.length > 0 && (
-                <div>
-                  <h6 className="text-neutral-600 mb-2">Models</h6>
-                  {diff.models.map((m) => (
-                    <div key={m.name} className={`border-l-2 pl-2 py-1.5 mb-1 ${KIND_BORDER[m.kind]}`}>
-                      <div className="flex items-center gap-2">
-                        <span className={`font-mono text-xs font-bold ${KIND_STYLES[m.kind].badge}`}>{KIND_STYLES[m.kind].label}</span>
-                        <span className="font-mono text-sm font-semibold">{m.name}</span>
-                        <span className="text-xs text-muted">{m.kind}</span>
-                      </div>
-                      {m.diff && (
-                        <div className="mt-1 ml-6">
-                          <DiffTree node={m.diff} showUnchanged={false} />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
+                <span className="tag tag-outline" style={{ borderColor: 'var(--color-modified)', color: 'var(--color-modified)' }}>
+                  ~{counts.modified} modified
+                </span>
+              </span>
+            </div>
           )}
+
+          <div className="flex-1 min-h-0 overflow-auto p-3">
+            {!left.trim() || !right.trim() ? (
+              <div className="text-sm text-muted">Paste the old spec on the left and the new spec on the right to see what changed.</div>
+            ) : (
+              <>
+                {leftParsed.error && <div className="text-sm text-delete">Left: {leftParsed.error}</div>}
+                {rightParsed.error && <div className="text-sm text-delete">Right: {rightParsed.error}</div>}
+              </>
+            )}
+
+            {diff && (
+              <>
+                {diff.endpoints.length === 0 && diff.models.length === 0 && (
+                  <div className="text-sm text-muted italic">No differences — endpoints and models are identical.</div>
+                )}
+
+                {diff.endpoints.length > 0 && (
+                  <div className="mb-6">
+                    <h6 className="text-neutral-600 mb-2">Endpoints</h6>
+                    {diff.endpoints.map((c) => (
+                      <div key={`${c.method} ${c.path}`} className={`border-l-2 pl-2 py-1.5 mb-1 ${KIND_BORDER[c.kind]}`}>
+                        <div className="flex items-center gap-2">
+                          <span className={`font-mono text-xs font-bold ${KIND_STYLES[c.kind].badge}`}>{KIND_STYLES[c.kind].label}</span>
+                          <MethodChip method={c.method} />
+                          <span className="font-mono text-sm">{c.path}</span>
+                        </div>
+                        {c.details.length > 0 && (
+                          <ul className="mt-1 ml-8 text-xs text-muted list-disc">
+                            {c.details.map((d, i) => (
+                              <li key={i}>{d}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {diff.models.length > 0 && (
+                  <div>
+                    <h6 className="text-neutral-600 mb-2">Models</h6>
+                    {diff.models.map((m) => (
+                      <div key={m.name} className={`border-l-2 pl-2 py-1.5 mb-1 ${KIND_BORDER[m.kind]}`}>
+                        <div className="flex items-center gap-2">
+                          <span className={`font-mono text-xs font-bold ${KIND_STYLES[m.kind].badge}`}>{KIND_STYLES[m.kind].label}</span>
+                          <span className="font-mono text-sm font-semibold">{m.name}</span>
+                          <span className="text-xs text-muted">{m.kind}</span>
+                        </div>
+                        {m.diff && (
+                          <div className="mt-1 ml-6">
+                            <DiffTree node={m.diff} showUnchanged={false} />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </SplitPane>
     </div>

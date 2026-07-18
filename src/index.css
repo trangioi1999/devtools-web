@@ -30,9 +30,9 @@
   --color-accent-400: #e1ad66;
   --color-accent-500: #c28d41;
   --color-accent-600: #a06f24;
-  --color-accent-700: #7d5411;
-  --color-accent-800: #5a3b0a;
-  --color-accent-900: #3a270d;
+  --color-accent-700: #0451a5;
+  --color-accent-800: #023a78;
+  --color-accent-900: #012248;
 
   /* semantic — stroke/text only, never fills */
   --color-get: oklch(0.5 0.09 250);
@@ -42,9 +42,14 @@
   --color-delete: oklch(0.5 0.13 25);
 
   /* JSON value-type colors, shared by Monaco theme, tree view and table */
-  --color-str: oklch(0.48 0.09 150);
-  --color-num: oklch(0.5 0.1 250);
-  --color-bool: oklch(0.5 0.11 310);
+  --color-str: #a31515;
+  --color-num: #098658;
+  --color-bool: #005cc5;
+
+  /* Diff status colors - green for added, red for removed, gold for modified */
+  --color-added: #2e7d32;
+  --color-removed: #c62828;
+  --color-modified: #a06f24;
 
   --font-heading: "Cormorant Garamond", serif;
   --font-body: "Lora", serif;
@@ -100,7 +105,7 @@ h6 {
   font-weight: 600;
 }
 
-a { color: var(--color-accent); text-underline-offset: 3px; }
+a { color: var(--color-accent-700); text-underline-offset: 3px; }
 
 .text-muted { color: color-mix(in srgb, var(--color-text) 55%, transparent); }
 .tnum { font-feature-settings: 'tnum'; }
@@ -133,15 +138,15 @@ code, pre, .font-mono {
 }
 .btn svg { display: block; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.btn-primary { color: var(--color-accent); border-color: var(--color-accent); }
+.btn-primary { color: var(--color-accent-700); border-color: var(--color-accent-700); }
 .btn-primary:hover { background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
 .btn-primary:active { background: color-mix(in srgb, var(--color-accent) 22%, transparent); }
 .btn-secondary { border-color: var(--color-divider); }
 .btn-secondary:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
 .btn-secondary:active { background: color-mix(in srgb, var(--color-text) 14%, transparent); }
 .btn-ghost {
-  color: var(--color-accent);
-  font-family: var(--font-heading); font-weight: 600; font-size: 13px;
+  color: #000000;
+  font-family: var(--font-heading); font-weight: 700; font-size: 13px;
   padding: 9px 5px; border-radius: 4px; white-space: nowrap;
 }
 .btn-ghost:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
@@ -259,4 +264,13 @@ textarea.input { min-height: 90px; resize: vertical; }
   box-shadow: var(--shadow-md); border-radius: var(--radius-md);
   font-family: var(--font-body); font-size: 14px; color: var(--color-text);
   padding: 9.2px 13.8px;
+}
+
+/* Hide Monaco Editor tooltips completely to prevent flickering and make find widget buttons clickable */
+.monaco-hover,
+.monaco-hover-widget,
+.monaco-tooltip,
+.monaco-editor .monaco-hover,
+.workbench-hover-container {
+  display: none !important;
 }

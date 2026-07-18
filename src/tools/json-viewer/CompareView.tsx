@@ -88,13 +88,15 @@ export function CompareView() {
             </button>
             {counts && (
               <span className="ml-auto flex items-center gap-2">
-                <span className="tag tag-outline" style={{ borderColor: 'var(--color-str)', color: 'var(--color-str)' }}>
+                <span className="tag tag-outline" style={{ borderColor: 'var(--color-added)', color: 'var(--color-added)' }}>
                   +{counts.added} added
                 </span>
-                <span className="tag tag-outline" style={{ borderColor: 'var(--color-delete)', color: 'var(--color-delete)' }}>
+                <span className="tag tag-outline" style={{ borderColor: 'var(--color-removed)', color: 'var(--color-removed)' }}>
                   −{counts.removed} removed
                 </span>
-                <span className="tag tag-outline">~{counts.modified} modified</span>
+                <span className="tag tag-outline" style={{ borderColor: 'var(--color-modified)', color: 'var(--color-modified)' }}>
+                  ~{counts.modified} modified
+                </span>
               </span>
             )}
           </div>
