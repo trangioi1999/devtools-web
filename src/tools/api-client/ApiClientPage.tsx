@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronDown, ChevronRight, Download, FileUp, Globe, Upload } from 'lucide-react'
+import { FileUp, Globe, Upload } from 'lucide-react'
 import type { ApiModel, ApiSpec, Endpoint } from './types'
 import { parseSpecFromText, fetchSpec } from './specParser'
 import { EnvironmentManager } from './EnvironmentManager'
@@ -13,22 +13,65 @@ const SPEC_KEY = 'devtools:api-client:spec'
 
 type SubTab = 'docs' | 'compare'
 
-function TagSection({ tag, endpoints, models }: { tag: string; endpoints: Endpoint[]; models?: ApiModel[] }) {
-  const [open, setOpen] = useState(true)
+const METHOD_COLOR_VAR: Record<string, string> = {
+  GET: 'var(--color-get)',
+  POST: 'var(--color-post)',
+  PUT: 'var(--color-put)',
+  PATCH: 'var(--color-patch)',
+  DELETE: 'var(--color-delete)',
+}
 
+function methodAbbrev(method: string): string {
+  return method === 'DELETE' ? 'DEL' : method
+}
+
+function endpointId(e: Endpoint): string {
+  return `ep-${e.method}-${e.path}`.replace(/[^a-zA-Z0-9-]/g, '-')
+}
+
+function TagSection({ tag, endpoints, models }: { tag: string; endpoints: Endpoint[]; models?: ApiModel[] }) {
   return (
-    <div className="mb-3">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 w-full text-left text-sm font-semibold text-slate-800 border-b border-slate-200 pb-1 mb-2"
-      >
-        {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        {tag}
-        <span className="text-slate-400 font-normal">({endpoints.length})</span>
-      </button>
-      {open && endpoints.map((e) => <EndpointRow key={`${e.method} ${e.path}`} endpoint={e} models={models} />)}
+    <div className="mb-6">
+      <h3 className="mb-3">{tag}</h3>
+      {endpoints.map((e) => (
+        <div key={`${e.method} ${e.path}`} id={endpointId(e)}>
+          <EndpointRow endpoint={e} models={models} />
+        </div>
+      ))}
     </div>
+  )
+}
+
+function TocLink({
+  endpoint,
+  active,
+  onClick,
+}: {
+  endpoint: Endpoint
+  active: boolean
+  onClick: () => void
+}) {
+  return (
+    <a
+      href={`#${endpointId(endpoint)}`}
+      onClick={onClick}
+      className="flex items-center gap-2 no-underline px-1.5 py-1 rounded-sm"
+      style={{ background: active ? 'color-mix(in srgb, var(--color-accent) 10%, transparent)' : undefined }}
+      onMouseEnter={(ev) => {
+        if (!active) ev.currentTarget.style.background = 'color-mix(in srgb, var(--color-text) 6%, transparent)'
+      }}
+      onMouseLeave={(ev) => {
+        if (!active) ev.currentTarget.style.background = ''
+      }}
+    >
+      <span
+        className="font-semibold shrink-0"
+        style={{ color: METHOD_COLOR_VAR[endpoint.method] ?? 'var(--color-accent-700)', width: 34, fontSize: 10, letterSpacing: '0.05em' }}
+      >
+        {methodAbbrev(endpoint.method)}
+      </span>
+      <span className="text-text truncate">{endpoint.path}</span>
+    </a>
   )
 }
 
@@ -39,9 +82,11 @@ export function ApiClientPage() {
   const [importUrl, setImportUrl] = useState('')
   const [importError, setImportError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [tocFilter, setTocFilter] = useState('')
   const [exportFormat, setExportFormat] = useState<'models' | 'endpoints' | null>(null)
   const [exportOpen, setExportOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [activeEndpointId, setActiveEndpointId] = useState<string | null>(null)
 
   // Restore the last parsed spec across reloads.
   useEffect(() => {
@@ -113,6 +158,19 @@ export function ApiClientPage() {
     return [...byTag.entries()]
   }, [spec, search])
 
+  const tocGrouped = useMemo(() => {
+    if (!spec) return []
+    const q = tocFilter.trim().toLowerCase()
+    const filtered = q ? spec.endpoints.filter((e) => e.path.toLowerCase().includes(q) || e.tag.toLowerCase().includes(q)) : spec.endpoints
+    const byTag = new Map<string, Endpoint[]>()
+    for (const e of filtered) {
+      const list = byTag.get(e.tag) ?? []
+      list.push(e)
+      byTag.set(e.tag, list)
+    }
+    return [...byTag.entries()]
+  }, [spec, tocFilter])
+
   useEffect(() => {
     if (!copied) return
     const t = setTimeout(() => setCopied(false), 1500)
@@ -121,7 +179,7 @@ export function ApiClientPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-1.5 bg-slate-50">
+      <div className="flex items-center gap-2 border-b border-divider px-4 py-2">
         <SubTabs
           tabs={[
             { id: 'docs', label: 'Docs' },
@@ -136,14 +194,51 @@ export function ApiClientPage() {
         <CompareSpecsView />
       ) : (
         <div className="flex-1 flex flex-col min-h-0">
-          <EnvironmentManager />
+          {spec && (
+            <div className="flex items-center gap-3 border-b border-divider px-4 py-2 flex-wrap">
+              <EnvironmentManager />
+              <div className="ml-auto flex items-center gap-2 relative">
+                <div className="relative">
+                  <button type="button" onClick={() => setExportOpen((v) => !v)} className="btn btn-primary" style={{ minHeight: 32, padding: '4px 16px' }}>
+                    Export ▾
+                  </button>
+                  {exportOpen && (
+                    <div className="absolute right-0 top-full mt-1 bg-surface border border-divider rounded-md shadow-md z-10 w-56 overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setExportFormat('models')
+                          setExportOpen(false)
+                        }}
+                        className="block w-full text-left px-3 py-2 text-sm hover:bg-neutral-100"
+                      >
+                        TypeScript models
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setExportFormat('endpoints')
+                          setExportOpen(false)
+                        }}
+                        className="block w-full text-left px-3 py-2 text-sm hover:bg-neutral-100"
+                      >
+                        createEndpoints(basePath)
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <button type="button" onClick={handleChangeSpec} className="btn btn-ghost">Change spec</button>
+              </div>
+            </div>
+          )}
 
           {!spec && (
-            <div className="flex-1 overflow-auto bg-slate-50">
-              <div className="max-w-2xl mx-auto px-6 py-10">
+            <div className="flex-1 overflow-auto">
+              <div style={{ maxWidth: 620, margin: '0 auto', padding: '36.8px 18.4px' }}>
                 <div className="text-center mb-6">
-                  <h1 className="text-2xl font-bold text-slate-900">Import an OpenAPI spec</h1>
-                  <p className="text-sm text-slate-500 mt-1">
+                  <div className="text-[10px] tracking-[0.14em] uppercase text-accent mb-2">API Client</div>
+                  <h2 className="mb-2">Import an OpenAPI spec</h2>
+                  <p className="text-muted italic m-0">
                     Swagger-style docs, try-it-out, TypeScript exports, and spec comparison — all from one YAML/JSON file.
                   </p>
                 </div>
@@ -154,13 +249,20 @@ export function ApiClientPage() {
                     e.preventDefault()
                     handleFileUpload(e.dataTransfer.files?.[0])
                   }}
-                  className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 rounded-xl bg-white py-10 cursor-pointer hover:border-sky-400 hover:bg-sky-50/40 transition-colors"
+                  className="flex flex-col items-center justify-center gap-2 rounded-md py-8 px-4 cursor-pointer transition-colors"
+                  style={{ border: '1px dashed var(--color-neutral-400)' }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--color-accent)'
+                    e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 5%, transparent)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--color-neutral-400)'
+                    e.currentTarget.style.background = ''
+                  }}
                 >
-                  <div className="w-11 h-11 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center">
-                    <FileUp size={20} />
-                  </div>
-                  <div className="text-sm font-medium text-slate-700">Drop your spec here, or click to browse</div>
-                  <div className="text-xs text-slate-400">.yaml · .yml · .json</div>
+                  <FileUp size={28} strokeWidth={1.5} className="text-accent" />
+                  <div className="font-heading font-semibold text-base">Drop your spec here, or click to browse</div>
+                  <div className="text-muted text-xs font-mono">.yaml · .yml · .json</div>
                   <input
                     type="file"
                     accept=".yaml,.yml,.json,application/x-yaml,application/json"
@@ -169,106 +271,114 @@ export function ApiClientPage() {
                   />
                 </label>
 
-                <div className="flex items-center gap-3 my-5 text-xs text-slate-400">
-                  <div className="flex-1 h-px bg-slate-200" />
+                <div className="flex items-center gap-3 my-4 text-[11px] tracking-[0.1em] uppercase text-neutral-500">
+                  <div className="flex-1 h-px bg-divider" />
                   or
-                  <div className="flex-1 h-px bg-slate-200" />
+                  <div className="flex-1 h-px bg-divider" />
                 </div>
 
-                <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col gap-4 shadow-sm">
-                  <label className="text-sm font-medium text-slate-700">
-                    <span className="flex items-center gap-1.5 mb-1"><Globe size={14} className="text-slate-400" /> Import from URL</span>
+                <div className="card" style={{ gap: '18.4px' }}>
+                  <label className="field">
+                    <label className="flex items-center gap-1.5"><Globe size={14} className="text-neutral-400" /> Import from URL</label>
                     <div className="flex gap-2">
                       <input
-                        className="flex-1 border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-400"
+                        className="input font-mono text-xs"
                         value={importUrl}
                         onChange={(e) => setImportUrl(e.target.value)}
                         placeholder="https://api.example.com/openapi.json"
                       />
-                      <button onClick={handleImportUrl} className="px-4 py-1.5 text-sm rounded-lg bg-slate-900 text-white hover:bg-slate-700">Fetch</button>
+                      <button type="button" onClick={handleImportUrl} className="btn btn-primary">Fetch</button>
                     </div>
                   </label>
-                  <label className="text-sm font-medium text-slate-700">
-                    <span className="flex items-center gap-1.5 mb-1"><Upload size={14} className="text-slate-400" /> Paste spec (JSON/YAML)</span>
+                  <label className="field">
+                    <label className="flex items-center gap-1.5"><Upload size={14} className="text-neutral-400" /> Paste spec (JSON/YAML)</label>
                     <textarea
-                      className="block w-full h-36 border border-slate-300 rounded-lg px-3 py-2 font-mono text-xs font-normal focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-400"
+                      className="input font-mono text-xs"
+                      style={{ height: 144 }}
                       value={importText}
                       onChange={(e) => setImportText(e.target.value)}
-                      placeholder="openapi: 3.0.0&#10;info:&#10;  title: My API"
+                      placeholder={'openapi: 3.0.0\ninfo:\n  title: My API'}
                     />
-                    <button onClick={handleImportText} className="mt-2 px-4 py-1.5 text-sm rounded-lg bg-slate-900 text-white hover:bg-slate-700">
+                    <button type="button" onClick={handleImportText} className="btn btn-primary" style={{ marginTop: '9.2px' }}>
                       Parse spec
                     </button>
                   </label>
-                  {importError && <div className="text-sm text-red-600">{importError}</div>}
+                  {importError && <div className="text-sm text-delete">{importError}</div>}
                 </div>
               </div>
             </div>
           )}
 
           {spec && (
-            <div className="flex-1 overflow-auto">
-              <div className="max-w-4xl mx-auto px-4 py-4">
-                <div className="flex items-start gap-3 mb-1">
-                  <h1 className="text-xl font-bold text-slate-900">{spec.title}</h1>
-                  {spec.version && (
-                    <span className="mt-1 text-xs bg-slate-200 text-slate-700 rounded px-1.5 py-0.5 font-mono">{spec.version}</span>
-                  )}
-                  <div className="ml-auto flex items-center gap-2 relative">
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() => setExportOpen((v) => !v)}
-                        className="flex items-center gap-1 px-3 py-1 text-sm rounded bg-slate-800 text-white"
-                      >
-                        <Download size={14} /> Export <ChevronDown size={12} />
-                      </button>
-                      {exportOpen && (
-                        <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded shadow-lg z-10 w-56">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setExportFormat('models')
-                              setExportOpen(false)
-                            }}
-                            className="block w-full text-left px-3 py-1.5 text-sm hover:bg-slate-100"
-                          >
-                            TypeScript models
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setExportFormat('endpoints')
-                              setExportOpen(false)
-                            }}
-                            className="block w-full text-left px-3 py-1.5 text-sm hover:bg-slate-100"
-                          >
-                            createEndpoints(basePath)
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    <button onClick={handleChangeSpec} className="text-xs text-slate-500 hover:underline">change spec</button>
-                  </div>
-                </div>
-                {spec.description && <p className="text-sm text-slate-600 mb-2">{spec.description}</p>}
-                {(spec.servers?.length ?? 0) > 0 && (
-                  <div className="text-xs text-slate-500 font-mono mb-3">Servers: {spec.servers?.join(' · ')}</div>
-                )}
-
+            <div className="flex-1 min-h-0 flex">
+              <aside className="hidden lg:flex flex-col w-[250px] shrink-0 border-r border-divider overflow-auto px-3 py-4">
+                <h6 className="text-neutral-600">Contents</h6>
                 <input
-                  placeholder="Filter by path, tag, operationId…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded mb-4"
+                  placeholder="Filter endpoints…"
+                  value={tocFilter}
+                  onChange={(e) => setTocFilter(e.target.value)}
+                  className="input mb-3"
+                  style={{ minHeight: 32 }}
                 />
+                <div className="flex flex-col gap-0.5 font-mono text-xs">
+                  {tocGrouped.map(([tag, endpoints]) => (
+                    <div key={tag}>
+                      <div className="font-heading font-semibold text-[15px]" style={{ padding: '6px 0 2px' }}>
+                        {tag} <span className="text-muted text-[11px] font-body">· {endpoints.length}</span>
+                      </div>
+                      {endpoints.map((e) => (
+                        <TocLink
+                          key={`${e.method} ${e.path}`}
+                          endpoint={e}
+                          active={activeEndpointId === endpointId(e)}
+                          onClick={() => setActiveEndpointId(endpointId(e))}
+                        />
+                      ))}
+                    </div>
+                  ))}
+                  {(spec.models?.length ?? 0) > 0 && (
+                    <div>
+                      <div className="font-heading font-semibold text-[15px]" style={{ padding: '10px 0 2px' }}>
+                        Schemas <span className="text-muted text-[11px] font-body">· {spec.models?.length}</span>
+                      </div>
+                      {spec.models?.map((m) => (
+                        <a key={m.name} href={`#model-${m.name}`} className="px-1.5 py-1 text-text no-underline hover:text-accent">
+                          {m.name}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </aside>
 
-                {grouped.map(([tag, endpoints]) => (
-                  <TagSection key={tag} tag={tag} endpoints={endpoints} models={spec.models} />
-                ))}
-                {grouped.length === 0 && <div className="text-sm text-slate-500">No endpoints match the filter.</div>}
+              <div className="flex-1 min-w-0 overflow-auto">
+                <div style={{ maxWidth: 840, margin: '0 auto', padding: '27.6px 27.6px 36.8px' }}>
+                  <div className="flex items-baseline gap-3">
+                    <h2 className="m-0">{spec.title}</h2>
+                    {spec.version && (
+                      <span className="tag tag-outline font-mono tnum">{spec.version}</span>
+                    )}
+                  </div>
+                  {spec.description && <p className="text-muted italic" style={{ margin: '9.2px 0' }}>{spec.description}</p>}
+                  {(spec.servers?.length ?? 0) > 0 && (
+                    <div className="font-mono text-xs text-neutral-600">{spec.servers?.join(' · ')}</div>
+                  )}
+                  <hr className="hr" />
 
-                <ModelsSection models={spec.models ?? []} />
+                  <input
+                    placeholder="Filter by path, tag, operationId…"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="input mb-4 lg:hidden"
+                  />
+
+                  {grouped.map(([tag, endpoints]) => (
+                    <TagSection key={tag} tag={tag} endpoints={endpoints} models={spec.models} />
+                  ))}
+                  {grouped.length === 0 && <div className="text-sm text-muted">No endpoints match the filter.</div>}
+
+                  <ModelsSection models={spec.models ?? []} />
+                </div>
               </div>
             </div>
           )}
@@ -278,9 +388,7 @@ export function ApiClientPage() {
       {exportFormat && spec && (
         <ExportSpecModal spec={spec} format={exportFormat} onClose={() => setExportFormat(null)} onCopied={() => setCopied(true)} />
       )}
-      {copied && (
-        <div className="fixed bottom-4 right-4 bg-slate-800 text-white text-sm px-3 py-1.5 rounded shadow-lg z-20">Copied</div>
-      )}
+      {copied && <div className="fixed bottom-4 right-4 toast z-20">Copied</div>}
     </div>
   )
 }

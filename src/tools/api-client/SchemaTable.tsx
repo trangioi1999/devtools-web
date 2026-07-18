@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
 import type { ApiModel, SchemaObject } from './types'
 
 const MAX_DEPTH = 5
@@ -54,7 +53,7 @@ interface TableProps {
 function PropertiesTable({ schema, resolver, visited = [], depth = 0 }: TableProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const props = schema.properties as Record<string, SchemaObject> | undefined
-  if (!props) return <div className="text-xs font-mono text-slate-600 px-2 py-1">{typeLabel(schema)}</div>
+  if (!props) return <div className="text-xs font-mono text-neutral-700 px-2 py-1">{typeLabel(schema)}</div>
 
   const required = new Set((schema.required as string[] | undefined) ?? [])
 
@@ -68,15 +67,10 @@ function PropertiesTable({ schema, resolver, visited = [], depth = 0 }: TablePro
   }
 
   return (
-    <table className="w-full text-xs border-collapse">
+    <table className="table" style={{ fontSize: 13 }}>
       {depth === 0 && (
         <thead>
-          <tr className="text-left text-slate-500">
-            <th className="py-1 pr-3 font-medium">Field</th>
-            <th className="py-1 pr-3 font-medium">Type</th>
-            <th className="py-1 pr-3 font-medium">Required</th>
-            <th className="py-1 font-medium">Description</th>
-          </tr>
+          <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
         </thead>
       )}
       <tbody>
@@ -87,27 +81,31 @@ function PropertiesTable({ schema, resolver, visited = [], depth = 0 }: TablePro
           const isOpen = expanded.has(name)
 
           return [
-            <tr key={name} className="border-t border-slate-100 align-top">
-              <td className="py-1 pr-3 font-mono text-blue-700 whitespace-nowrap">
+            <tr key={name}>
+              <td className="font-mono text-accent-700 whitespace-nowrap">
                 {canExpand ? (
-                  <button type="button" onClick={() => toggle(name)} className="flex items-center gap-0.5 hover:underline">
-                    {isOpen ? <ChevronDown size={11} className="text-slate-400" /> : <ChevronRight size={11} className="text-slate-400" />}
+                  <button type="button" onClick={() => toggle(name)} className="flex items-center gap-1 hover:underline">
+                    <span className="text-neutral-400 w-3 inline-block">{isOpen ? '▾' : '▸'}</span>
                     {name}
                   </button>
                 ) : (
-                  <span className="pl-[15px]">{name}</span>
+                  <span className="pl-[16px]">{name}</span>
                 )}
               </td>
-              <td className="py-1 pr-3 font-mono text-emerald-700">{typeLabel(propSchema)}{isCycle ? ' (circular)' : ''}</td>
-              <td className="py-1 pr-3">
-                {required.has(name) ? <span className="text-red-600">yes</span> : <span className="text-slate-400">no</span>}
+              <td className="font-mono text-str">{typeLabel(propSchema)}{isCycle ? ' (circular)' : ''}</td>
+              <td>
+                {required.has(name) ? (
+                  <span className="tag tag-accent" style={{ fontSize: 10 }}>required</span>
+                ) : (
+                  <span className="tag tag-neutral" style={{ fontSize: 10 }}>optional</span>
+                )}
               </td>
-              <td className="py-1 text-slate-600">{(propSchema.description as string) ?? ''}</td>
+              <td className="text-muted">{(propSchema.description as string) ?? ''}</td>
             </tr>,
             canExpand && isOpen ? (
-              <tr key={`${name}-details`} className="border-t border-slate-100">
-                <td colSpan={4} className="py-1 pl-4">
-                  <div className="border-l-2 border-slate-200 pl-3">
+              <tr key={`${name}-details`}>
+                <td colSpan={4} className="!pl-4">
+                  <div className="border-l-2 border-divider pl-3">
                     <PropertiesTable
                       schema={child.schema}
                       resolver={resolver}
@@ -147,7 +145,7 @@ export function SchemaTable({ schema, models }: SchemaTableProps) {
   if (resolved) {
     return (
       <div>
-        <div className="text-xs font-mono text-slate-700 font-semibold mb-1">
+        <div className="text-xs font-mono font-semibold text-neutral-700 mb-1">
           {ref}
           {isArray ? '[]' : ''}
         </div>

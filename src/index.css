@@ -1,9 +1,70 @@
 @import "tailwindcss";
 
+/* Fonts are loaded via <link> tags in index.html — a CSS @import here gets
+   dropped by the bundler once it lands after Tailwind's expanded @layer
+   rules, since @import must precede all other rules. */
+
 @theme {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --color-bg: #f3f2f2;
+  --color-surface: #eae9e9;
+  --color-text: #201f1d;
+  --color-accent: #b68235;
+  --color-accent-2: #ac803e;
+  --color-divider: color-mix(in srgb, #201f1d 16%, transparent);
+
+  /* neutral ramp */
+  --color-neutral-100: #f8f4f4;
+  --color-neutral-200: #eae7e7;
+  --color-neutral-300: #d7d3d3;
+  --color-neutral-400: #bab6b6;
+  --color-neutral-500: #9b9797;
+  --color-neutral-600: #7d7979;
+  --color-neutral-700: #605d5d;
+  --color-neutral-800: #444141;
+  --color-neutral-900: #2d2b2b;
+
+  /* accent ramp */
+  --color-accent-100: #fff3e4;
+  --color-accent-200: #ffe3bf;
+  --color-accent-300: #facb8d;
+  --color-accent-400: #e1ad66;
+  --color-accent-500: #c28d41;
+  --color-accent-600: #a06f24;
+  --color-accent-700: #7d5411;
+  --color-accent-800: #5a3b0a;
+  --color-accent-900: #3a270d;
+
+  /* semantic — stroke/text only, never fills */
+  --color-get: oklch(0.5 0.09 250);
+  --color-post: oklch(0.48 0.09 150);
+  --color-put: oklch(0.52 0.1 65);
+  --color-patch: oklch(0.5 0.08 190);
+  --color-delete: oklch(0.5 0.13 25);
+
+  /* JSON value-type colors, shared by Monaco theme, tree view and table */
+  --color-str: oklch(0.48 0.09 150);
+  --color-num: oklch(0.5 0.1 250);
+  --color-bool: oklch(0.5 0.11 310);
+
+  --font-heading: "Cormorant Garamond", serif;
+  --font-body: "Lora", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Tailwind v4 multiplies this by the utility number, so p-1 = 4.6px,
+     p-2 = 9.2px, p-3 = 13.8px, p-4 = 18.4px, p-6 = 27.6px, p-8 = 36.8px —
+     matches the Classical spacing scale exactly. */
+  --spacing: 4.6px;
+
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 7px;
+
+  --shadow-sm: 0 1px 2px color-mix(in srgb, #2d2b2b 14%, transparent);
+  --shadow-md: 0 3px 10px color-mix(in srgb, #2d2b2b 16%, transparent);
+  --shadow-lg: 0 12px 32px color-mix(in srgb, #2d2b2b 22%, transparent);
 }
+
+*, *::before, *::after { box-sizing: border-box; }
 
 html {
   -webkit-font-smoothing: antialiased;
@@ -11,10 +72,191 @@ html {
 }
 
 body {
-  font-family: var(--font-sans);
-  color: #1e293b;
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  font-weight: 400;
 }
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+h1 { font-size: 42px; }
+h2 { font-size: 32px; }
+h3 { font-size: 25px; }
+h4 { font-size: 20px; }
+h5 { font-size: 16px; }
+h6 {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+a { color: var(--color-accent); text-underline-offset: 3px; }
+
+.text-muted { color: color-mix(in srgb, var(--color-text) 55%, transparent); }
+.tnum { font-feature-settings: 'tnum'; }
+.mark { background: color-mix(in srgb, var(--color-accent) 28%, transparent); border-radius: 2px; }
+
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+::selection { background: color-mix(in srgb, var(--color-accent) 30%, transparent); }
 
 code, pre, .font-mono {
   font-family: var(--font-mono);
+}
+
+/* ── rules ─────────────────────────────────────────────────────────── */
+.hr {
+  height: 1px; border: 0; margin: 18.4px 0;
+  background: var(--color-divider);
+}
+
+/* ── buttons ───────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  cursor: pointer; text-decoration: none;
+  font-family: var(--font-heading); font-weight: 600;
+  font-size: 14px; line-height: 1.2; color: var(--color-text);
+  background: transparent; border: 1px solid transparent;
+  padding: 9.2px 16.6px;
+  border-radius: var(--radius-md);
+  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+.btn svg { display: block; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { color: var(--color-accent); border-color: var(--color-accent); }
+.btn-primary:hover { background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
+.btn-primary:active { background: color-mix(in srgb, var(--color-accent) 22%, transparent); }
+.btn-secondary { border-color: var(--color-divider); }
+.btn-secondary:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+.btn-secondary:active { background: color-mix(in srgb, var(--color-text) 14%, transparent); }
+.btn-ghost {
+  color: var(--color-accent);
+  font-family: var(--font-heading); font-weight: 600; font-size: 13px;
+  padding: 9px 5px; border-radius: 4px; white-space: nowrap;
+}
+.btn-ghost:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
+.btn-ghost:active { background: color-mix(in srgb, var(--color-accent) 18%, transparent); }
+.btn-icon { width: 36px; height: 36px; padding: 0; }
+.btn-block { width: 100%; margin-top: 9.2px; }
+
+/* ── forms ─────────────────────────────────────────────────────────── */
+.field > label {
+  display: flex; align-items: center; gap: 6px; font-size: 12px; margin-bottom: 5px;
+  color: color-mix(in srgb, var(--color-text) 70%, transparent);
+}
+.input {
+  width: 100%; min-height: 32px; padding: 6px 10px; font: inherit;
+  font-size: 14px; color: var(--color-text); caret-color: var(--color-accent);
+  background: transparent;
+  border: 1px solid var(--color-divider); border-radius: var(--radius-md);
+  transition: border-color 140ms ease;
+}
+.input:hover { border-color: color-mix(in srgb, var(--color-text) 45%, transparent); }
+.input:focus-visible { border-color: var(--color-accent); outline-offset: 0; }
+textarea.input { min-height: 90px; resize: vertical; }
+
+.radio { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; }
+.radio input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+.radio .dot {
+  width: 16px; height: 16px; flex: none; border-radius: 50%;
+  border: 1.5px solid var(--color-divider);
+}
+.radio:hover .dot { border-color: var(--color-accent); }
+.radio input:checked + .dot {
+  border-color: var(--color-accent); background: var(--color-accent);
+  box-shadow: inset 0 0 0 4px var(--color-bg);
+}
+.radio input:focus-visible + .dot { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+
+/* ── segmented control ────────────────────────────────────────────── */
+.seg {
+  display: inline-flex; overflow: hidden;
+  border: 1px solid var(--color-divider); border-radius: var(--radius-md);
+}
+.seg-opt {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px; font-size: 13px; cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
+}
+.seg-opt + .seg-opt { border-left: 1px solid var(--color-divider); }
+.seg-opt.is-selected { color: var(--color-accent); box-shadow: inset 0 0 0 1px var(--color-accent); }
+.seg-opt:not(.is-selected):hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+
+/* ── cards ─────────────────────────────────────────────────────────── */
+.card {
+  display: flex; flex-direction: column; gap: 9.2px;
+  padding: 13.8px; border-radius: var(--radius-md); background: transparent; border: 1px solid var(--color-divider);
+}
+.card-kicker { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-accent); }
+.card-title { font-family: var(--font-heading); font-weight: 600; font-size: 17px; line-height: 1.2; }
+.card-body { margin: 0; font-size: 13px; opacity: 0.8; flex: 1; }
+.elev-sm { box-shadow: var(--shadow-sm); }
+.elev-md { box-shadow: var(--shadow-md); }
+.elev-lg { box-shadow: var(--shadow-lg); }
+
+/* ── tags ──────────────────────────────────────────────────────────── */
+.tag {
+  display: inline-flex; align-items: center; font-size: 11px;
+  letter-spacing: 0.02em; padding: 3px 10px;
+  border-radius: 3px;
+}
+.tag-accent { background: var(--color-accent-100); color: var(--color-accent-800); }
+.tag-neutral { background: var(--color-neutral-100); color: var(--color-neutral-800); }
+.tag-outline { border: 1px solid var(--color-accent); color: var(--color-accent); background: transparent; }
+
+/* ── navigation ────────────────────────────────────────────────────── */
+.nav {
+  display: flex; align-items: center; gap: 18.4px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--color-divider);
+}
+.nav-brand { font-family: var(--font-heading); font-weight: 600; font-size: 22px; }
+.nav a { color: inherit; text-decoration: none; font-size: 14px; letter-spacing: 0.02em; transition: color 140ms ease; }
+.nav a:hover, .nav a[aria-current='page'] { color: var(--color-accent); }
+
+/* ── tables ────────────────────────────────────────────────────────── */
+.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table th {
+  text-align: left; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+  padding: 9.2px; border-bottom: 1px solid var(--color-divider);
+}
+.table td {
+  padding: 9.2px;
+  border-bottom: 1px solid var(--color-divider);
+}
+.table tbody tr:hover { background: color-mix(in srgb, var(--color-text) 4%, transparent); }
+
+/* ── dialog ────────────────────────────────────────────────────────── */
+.dialog-backdrop {
+  position: fixed; inset: 0; display: grid; place-items: center;
+  padding: 18.4px; z-index: 50;
+  background: color-mix(in srgb, var(--color-neutral-900) 50%, transparent);
+}
+.dialog {
+  width: min(440px, 100%); display: flex; flex-direction: column; gap: 13.8px;
+  padding: 18.4px; border-radius: var(--radius-lg);
+  background: var(--color-surface); box-shadow: var(--shadow-lg); border: 1px solid var(--color-divider);
+}
+.dialog-wide { width: min(640px, 100%); }
+.dialog-title { font-family: var(--font-heading); font-weight: 600; font-size: 20px; }
+.dialog-body { font-size: 14px; opacity: 0.85; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 9.2px; margin-top: 9.2px; }
+
+/* ── toast ─────────────────────────────────────────────────────────── */
+.toast {
+  background: var(--color-surface); border: 1px solid var(--color-divider);
+  box-shadow: var(--shadow-md); border-radius: var(--radius-md);
+  font-family: var(--font-body); font-size: 14px; color: var(--color-text);
+  padding: 9.2px 13.8px;
 }

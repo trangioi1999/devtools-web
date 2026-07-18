@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { buildJsonPath, type PathSegment } from '../lib/jsonPath'
+import { valueClassName } from '../lib/jsonValueStyle'
 
 interface JsonTreeProps {
   value: unknown
@@ -52,24 +53,22 @@ function Node({
             type="button"
             data-testid={testId}
             onClick={() => setExpanded((e) => !e)}
-            className="w-4 text-slate-400 hover:text-slate-700"
+            className="w-4 text-neutral-400 hover:text-text"
           >
             {expanded ? '▾' : '▸'}
           </button>
           <span
             onClick={handleKeyClick}
-            className={`cursor-pointer font-mono text-sm ${
-              keyMatches ? 'bg-yellow-200' : 'text-blue-700'
-            }`}
+            className={`cursor-pointer font-mono text-sm font-semibold text-accent-700 ${keyMatches ? 'mark' : ''}`}
           >
             {keyLabel}
           </span>
-          <span className="text-slate-400 text-xs">
+          <span className="text-neutral-400 text-xs">
             {isArray ? `[${entries.length}]` : `{${entries.length}}`}
           </span>
         </div>
         {expanded && (
-          <div className="border-l border-slate-200 pl-2">
+          <div className="border-l border-divider pl-2">
             {entries.map(([k, v]) => (
               <Node
                 key={String(k)}
@@ -95,18 +94,14 @@ function Node({
       <span className="w-4" />
       <span
         onClick={handleKeyClick}
-        className={`cursor-pointer font-mono text-sm ${
-          keyMatches ? 'bg-yellow-200' : 'text-blue-700'
-        }`}
+        className={`cursor-pointer font-mono text-sm text-accent-700 ${keyMatches ? 'mark' : ''}`}
       >
         {keyLabel}
       </span>
-      <span className="text-slate-400 text-sm">:</span>
+      <span className="text-neutral-400 text-sm">:</span>
       <span
         onClick={handleValueClick}
-        className={`cursor-pointer font-mono text-sm text-emerald-700 ${
-          valueMatches ? 'bg-yellow-200' : ''
-        }`}
+        className={`cursor-pointer font-mono text-sm ${valueClassName(value)} ${valueMatches ? 'mark' : ''}`}
       >
         {valueText}
       </span>
@@ -116,7 +111,7 @@ function Node({
 
 export function JsonTree({ value, onCopyPath, onCopyValue, highlightQuery }: JsonTreeProps) {
   if (!isExpandable(value)) {
-    return <div className="font-mono text-sm text-emerald-700">{JSON.stringify(value)}</div>
+    return <div className={`font-mono text-sm ${valueClassName(value)}`}>{JSON.stringify(value)}</div>
   }
 
   const entries = Array.isArray(value) ? value.map((v, i) => [i, v] as const) : Object.entries(value)

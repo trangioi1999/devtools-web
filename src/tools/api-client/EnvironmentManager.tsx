@@ -16,6 +16,7 @@ function emptyEnvironment(): Environment {
 export function EnvironmentManager() {
   const [envs, setEnvs] = useState<Environment[]>(() => listEnvironments())
   const [activeId, setActiveId] = useState<string | null>(() => getActiveEnvironmentId())
+  const [manageOpen, setManageOpen] = useState(false)
   const [draft, setDraft] = useState<Environment | null>(null)
 
   const refresh = () => setEnvs(listEnvironments())
@@ -56,14 +57,15 @@ export function EnvironmentManager() {
   }
 
   return (
-    <div className="p-3 border-b border-slate-200 flex items-center gap-3">
-      <label className="text-sm flex items-center gap-2">
-        Active environment
+    <>
+      <label className="field flex items-center gap-2 m-0">
+        <span className="text-[11px] uppercase tracking-[0.08em] text-neutral-600 whitespace-nowrap">Environment</span>
         <select
           aria-label="Active environment"
           value={activeId ?? ''}
           onChange={(e) => handleSelectActive(e.target.value)}
-          className="border border-slate-300 rounded px-2 py-1 text-sm"
+          className="input"
+          style={{ minHeight: 32, width: 'auto', padding: '4px 10px' }}
         >
           <option value="">— none —</option>
           {envs.map((e) => (
@@ -72,44 +74,66 @@ export function EnvironmentManager() {
         </select>
       </label>
 
-      <button onClick={handleNew} className="px-3 py-1 text-sm rounded bg-slate-200">
+      <button type="button" onClick={handleNew} className="btn btn-ghost">
         + New environment
       </button>
+      <button type="button" onClick={() => setManageOpen(true)} className="btn btn-ghost">
+        Manage…
+      </button>
 
-      {envs.map((e) => (
-        <button key={e.id} onClick={() => handleDelete(e.id)} className="text-xs text-red-600">
-          delete {e.name}
-        </button>
-      ))}
+      {manageOpen && !draft && (
+        <div className="dialog-backdrop">
+          <div className="dialog dialog-wide">
+            <h2 className="dialog-title">Environments</h2>
+            <div className="flex flex-col gap-2">
+              {envs.length === 0 && <div className="text-sm text-muted">No environments yet.</div>}
+              {envs.map((e) => (
+                <div key={e.id} className="flex items-center gap-2 border border-divider rounded-md px-3 py-2">
+                  <span className="font-mono text-sm flex-1">{e.name || '(unnamed)'}</span>
+                  <span className="text-xs text-muted font-mono truncate max-w-[40%]">{e.baseUrl}</span>
+                  <button type="button" onClick={() => setDraft(e)} className="btn btn-ghost">Edit</button>
+                  <button type="button" onClick={() => handleDelete(e.id)} className="btn btn-ghost" style={{ color: 'var(--color-delete)' }}>
+                    Delete
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="dialog-actions">
+              <button type="button" onClick={() => setManageOpen(false)} className="btn btn-secondary">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {draft && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-10">
-          <div className="bg-white rounded-lg p-4 w-96 flex flex-col gap-2">
-            <label className="text-sm">
-              Name
+        <div className="dialog-backdrop">
+          <div className="dialog">
+            <h2 className="dialog-title">{envs.some((e) => e.id === draft.id) ? 'Edit environment' : 'New environment'}</h2>
+            <label className="field">
+              <label>Name</label>
               <input
                 aria-label="Name"
                 value={draft.name}
                 onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                className="block w-full border border-slate-300 rounded px-2 py-1"
+                className="input"
               />
             </label>
-            <label className="text-sm">
-              Base URL
+            <label className="field">
+              <label>Base URL</label>
               <input
                 aria-label="Base URL"
                 value={draft.baseUrl}
                 onChange={(e) => setDraft({ ...draft, baseUrl: e.target.value })}
-                className="block w-full border border-slate-300 rounded px-2 py-1"
+                className="input font-mono"
               />
             </label>
-            <label className="text-sm">
-              Auth type
+            <label className="field">
+              <label>Auth type</label>
               <select
                 aria-label="Auth type"
                 value={draft.auth.type}
                 onChange={(e) => updateAuthType(e.target.value as AuthConfig['type'])}
-                className="block w-full border border-slate-300 rounded px-2 py-1"
+                className="input"
               >
                 <option value="none">None</option>
                 <option value="bearer">Bearer token</option>
@@ -119,50 +143,50 @@ export function EnvironmentManager() {
             </label>
 
             {draft.auth.type === 'bearer' && (
-              <label className="text-sm">
-                Token
+              <label className="field">
+                <label>Token</label>
                 <input
                   aria-label="Token"
                   value={draft.auth.token}
                   onChange={(e) => setDraft({ ...draft, auth: { type: 'bearer', token: e.target.value } })}
-                  className="block w-full border border-slate-300 rounded px-2 py-1"
+                  className="input font-mono"
                 />
               </label>
             )}
 
             {draft.auth.type === 'apiKey' && (
               <>
-                <label className="text-sm">
-                  Key name
+                <label className="field">
+                  <label>Key name</label>
                   <input
                     aria-label="Key name"
                     value={draft.auth.name}
                     onChange={(e) =>
                       setDraft({ ...draft, auth: { ...draft.auth as Extract<AuthConfig, {type:'apiKey'}>, name: e.target.value } })
                     }
-                    className="block w-full border border-slate-300 rounded px-2 py-1"
+                    className="input font-mono"
                   />
                 </label>
-                <label className="text-sm">
-                  Value
+                <label className="field">
+                  <label>Value</label>
                   <input
                     aria-label="Key value"
                     value={draft.auth.value}
                     onChange={(e) =>
                       setDraft({ ...draft, auth: { ...draft.auth as Extract<AuthConfig, {type:'apiKey'}>, value: e.target.value } })
                     }
-                    className="block w-full border border-slate-300 rounded px-2 py-1"
+                    className="input font-mono"
                   />
                 </label>
-                <label className="text-sm">
-                  Location
+                <label className="field">
+                  <label>Location</label>
                   <select
                     aria-label="Key location"
                     value={draft.auth.location}
                     onChange={(e) =>
                       setDraft({ ...draft, auth: { ...draft.auth as Extract<AuthConfig, {type:'apiKey'}>, location: e.target.value as 'header' | 'query' } })
                     }
-                    className="block w-full border border-slate-300 rounded px-2 py-1"
+                    className="input"
                   >
                     <option value="header">Header</option>
                     <option value="query">Query param</option>
@@ -173,19 +197,19 @@ export function EnvironmentManager() {
 
             {draft.auth.type === 'basic' && (
               <>
-                <label className="text-sm">
-                  Username
+                <label className="field">
+                  <label>Username</label>
                   <input
                     aria-label="Username"
                     value={draft.auth.username}
                     onChange={(e) =>
                       setDraft({ ...draft, auth: { ...draft.auth as Extract<AuthConfig, {type:'basic'}>, username: e.target.value } })
                     }
-                    className="block w-full border border-slate-300 rounded px-2 py-1"
+                    className="input"
                   />
                 </label>
-                <label className="text-sm">
-                  Password
+                <label className="field">
+                  <label>Password</label>
                   <input
                     aria-label="Password"
                     type="password"
@@ -193,19 +217,19 @@ export function EnvironmentManager() {
                     onChange={(e) =>
                       setDraft({ ...draft, auth: { ...draft.auth as Extract<AuthConfig, {type:'basic'}>, password: e.target.value } })
                     }
-                    className="block w-full border border-slate-300 rounded px-2 py-1"
+                    className="input"
                   />
                 </label>
               </>
             )}
 
-            <div className="flex justify-end gap-2 mt-2">
-              <button onClick={() => setDraft(null)} className="px-3 py-1 text-sm rounded bg-slate-200">Cancel</button>
-              <button onClick={handleSave} className="px-3 py-1 text-sm rounded bg-slate-800 text-white">Save</button>
+            <div className="dialog-actions">
+              <button type="button" onClick={() => setDraft(null)} className="btn btn-secondary">Cancel</button>
+              <button type="button" onClick={handleSave} className="btn btn-primary">Save</button>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }

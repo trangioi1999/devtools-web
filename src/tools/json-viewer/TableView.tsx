@@ -1,5 +1,6 @@
 import { computeTableShape, type TableCellValue } from '../../lib/jsonTableRows'
 import { matchesText } from '../../lib/jsonSearch'
+import { valueClassName } from '../../lib/jsonValueStyle'
 
 interface CellProps {
   cell: TableCellValue
@@ -11,14 +12,14 @@ interface CellProps {
 function Cell({ cell, onCopyPath, onCopyValue, search }: CellProps) {
   if (cell.kind === 'primitive') {
     if (cell.value === undefined) {
-      return <span className="text-slate-300">—</span>
+      return <span className="text-neutral-400">—</span>
     }
     return (
       <button
         type="button"
         onClick={() => onCopyValue(cell.value)}
-        className={`font-mono text-xs text-emerald-700 hover:underline text-left ${
-          matchesText(JSON.stringify(cell.value), search) ? 'bg-yellow-200' : ''
+        className={`font-mono text-xs hover:underline text-left ${valueClassName(cell.value)} ${
+          matchesText(JSON.stringify(cell.value), search) ? 'mark' : ''
         }`}
       >
         {JSON.stringify(cell.value)}
@@ -31,11 +32,11 @@ function Cell({ cell, onCopyPath, onCopyValue, search }: CellProps) {
       <tbody>
         {cell.rows.map((row) => (
           <tr key={row.key}>
-            <td className="pr-2 text-slate-500 font-mono align-top whitespace-nowrap">
+            <td className="pr-2 text-neutral-600 font-mono align-top whitespace-nowrap">
               <button
                 type="button"
                 onClick={() => onCopyPath(row.path)}
-                className={`hover:underline ${matchesText(row.key, search) ? 'bg-yellow-200' : ''}`}
+                className={`hover:underline ${matchesText(row.key, search) ? 'mark' : ''}`}
               >
                 {row.key}
               </button>
@@ -63,11 +64,11 @@ export function TableView({ value, onCopyPath, onCopyValue, search }: TableViewP
   if (shape.kind === 'object-array') {
     return (
       <div className="overflow-auto h-full">
-        <table className="w-full text-sm border-collapse">
+        <table className="table">
           <thead>
             <tr>
               {shape.columns.map((col) => (
-                <th key={col.key} className="text-left border-b border-slate-300 px-2 py-1 sticky top-0 bg-white">
+                <th key={col.key} className="sticky top-0 bg-bg">
                   {col.key}
                 </th>
               ))}
@@ -75,9 +76,9 @@ export function TableView({ value, onCopyPath, onCopyValue, search }: TableViewP
           </thead>
           <tbody>
             {shape.rows.map((row) => (
-              <tr key={row.id} className="border-b border-slate-100 align-top">
+              <tr key={row.id}>
                 {shape.columns.map((col) => (
-                  <td key={col.key} className="px-2 py-1">
+                  <td key={col.key}>
                     <Cell cell={row.cells[col.key]} onCopyPath={onCopyPath} onCopyValue={onCopyValue} search={search} />
                   </td>
                 ))}
@@ -91,20 +92,20 @@ export function TableView({ value, onCopyPath, onCopyValue, search }: TableViewP
 
   return (
     <div className="overflow-auto h-full">
-      <table className="w-full text-sm border-collapse">
+      <table className="table">
         <tbody>
           {shape.rows.map((row) => (
-            <tr key={row.key} className="border-b border-slate-100 align-top">
-              <td className="px-2 py-1 text-slate-500 font-mono whitespace-nowrap">
+            <tr key={row.key}>
+              <td className="text-neutral-600 font-mono whitespace-nowrap">
                 <button
                   type="button"
                   onClick={() => onCopyPath(row.path)}
-                  className={`hover:underline ${matchesText(row.key, search) ? 'bg-yellow-200' : ''}`}
+                  className={`hover:underline ${matchesText(row.key, search) ? 'mark' : ''}`}
                 >
                   {row.key}
                 </button>
               </td>
-              <td className="px-2 py-1">
+              <td>
                 <Cell cell={row.cell} onCopyPath={onCopyPath} onCopyValue={onCopyValue} search={search} />
               </td>
             </tr>

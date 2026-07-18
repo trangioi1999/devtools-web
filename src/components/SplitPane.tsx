@@ -60,10 +60,14 @@ export function SplitPane({ direction = 'horizontal', initial = 50, min = 15, ma
         role="separator"
         aria-orientation={isHorizontal ? 'vertical' : 'horizontal'}
         onMouseDown={() => setDragging(true)}
-        className={`shrink-0 bg-slate-200 hover:bg-blue-400 active:bg-blue-500 transition-colors ${
-          isHorizontal ? 'w-1 cursor-col-resize' : 'h-1 cursor-row-resize'
-        } ${dragging ? 'bg-blue-500' : ''}`}
-      />
+        className={`shrink-0 flex group ${isHorizontal ? 'w-[5px] justify-center cursor-col-resize' : 'h-[5px] items-center cursor-row-resize'}`}
+      >
+        <div
+          className={`bg-divider transition-colors group-hover:bg-accent ${isHorizontal ? 'w-px h-full' : 'h-px w-full'} ${
+            dragging ? '!bg-accent' : ''
+          }`}
+        />
+      </div>
       <div className="flex-1 min-h-0 min-w-0 overflow-hidden">{children[1]}</div>
       {dragging && <div className="absolute inset-0 z-50" />}
     </div>

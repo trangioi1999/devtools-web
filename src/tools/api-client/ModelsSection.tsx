@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
 import type { ApiModel } from './types'
 import { SchemaTable } from './SchemaTable'
 
@@ -7,20 +6,20 @@ function ModelRow({ model, models }: { model: ApiModel; models: ApiModel[] }) {
   const [open, setOpen] = useState(false)
 
   return (
-    <div className="border border-slate-200 rounded mb-1">
+    <div id={`model-${model.name}`} className="card p-0 overflow-hidden mb-2">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-50"
+        className="w-full flex items-center gap-2 px-3 py-2 border-none bg-transparent cursor-pointer text-left hover:bg-neutral-100/70"
       >
-        {open ? <ChevronDown size={13} className="text-slate-400" /> : <ChevronRight size={13} className="text-slate-400" />}
-        <span className="font-mono text-sm font-semibold text-slate-800">{model.name}</span>
+        <span className="text-neutral-400">{open ? '▾' : '▸'}</span>
+        <span className="font-mono text-sm font-semibold text-text">{model.name}</span>
         {typeof model.schema.description === 'string' && (
-          <span className="ml-auto text-xs text-slate-500 truncate max-w-[50%]">{model.schema.description}</span>
+          <span className="ml-auto text-muted italic text-xs truncate max-w-[50%]">{model.schema.description}</span>
         )}
       </button>
       {open && (
-        <div className="border-t border-slate-200 px-3 py-2">
+        <div className="border-t border-divider px-3 py-2">
           <SchemaTable schema={model.schema} models={models} />
         </div>
       )}
@@ -29,20 +28,12 @@ function ModelRow({ model, models }: { model: ApiModel; models: ApiModel[] }) {
 }
 
 export function ModelsSection({ models }: { models: ApiModel[] }) {
-  const [open, setOpen] = useState(true)
   if (models.length === 0) return null
 
   return (
-    <div className="mt-4">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2"
-      >
-        {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        Schemas <span className="text-slate-400 font-normal">({models.length})</span>
-      </button>
-      {open && models.map((m) => <ModelRow key={m.name} model={m} models={models} />)}
+    <div className="mt-6">
+      <h3 className="mb-3">Schemas</h3>
+      {models.map((m) => <ModelRow key={m.name} model={m} models={models} />)}
     </div>
   )
 }

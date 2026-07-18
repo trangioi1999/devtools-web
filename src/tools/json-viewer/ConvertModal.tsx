@@ -35,39 +35,42 @@ export function ConvertModal({ value, format, onClose, onCopied }: ConvertModalP
   }
 
   return (
-    <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-10">
-      <div className="bg-white rounded-lg p-4 w-[32rem] flex flex-col gap-2">
-        <h2 className="font-semibold text-sm">{format === 'yaml' ? 'YAML' : 'TypeScript interface'}</h2>
+    <div className="dialog-backdrop">
+      <div className="dialog dialog-wide">
+        <h2 className="dialog-title">{format === 'yaml' ? 'YAML' : 'TypeScript interface'}</h2>
         {format === 'typescript' && (
-          <div className="flex items-center gap-3 text-sm">
-            <label className="flex items-center gap-1.5 text-slate-700">
-              Root name
+          <div className="flex items-center gap-4 text-sm flex-wrap">
+            <label className="field flex items-center gap-2 m-0">
+              <span className="m-0">Root name</span>
               <input
                 value={rootName}
                 onChange={(e) => setRootName(e.target.value)}
                 placeholder="Root"
-                className="px-2 py-0.5 border border-slate-300 rounded w-40 font-mono text-xs"
+                className="input font-mono text-xs"
+                style={{ width: 160 }}
               />
             </label>
-            <label className="flex items-center gap-1.5 text-slate-700 select-none" title='Prefix every interface with "I" (IRoot, IEnvironment)'>
+            <label className="radio" title='Prefix every interface with "I" (IRoot, IEnvironment)'>
               <input type="checkbox" checked={usePrefix} onChange={(e) => setUsePrefix(e.target.checked)} />
+              <span className="dot rounded-[2px]" />
               I prefix
             </label>
-            <label className="flex items-center gap-1.5 text-slate-700 select-none" title='Append "BE" for API models (IGetTemplateEngineResponseBE)'>
+            <label className="radio" title='Append "BE" for API models (IGetTemplateEngineResponseBE)'>
               <input type="checkbox" checked={useBeSuffix} onChange={(e) => setUseBeSuffix(e.target.checked)} />
+              <span className="dot rounded-[2px]" />
               BE suffix
             </label>
           </div>
         )}
         {error ? (
-          <div className="text-sm text-red-600">{error}</div>
+          <div className="text-sm text-delete">{error}</div>
         ) : (
-          <pre className="text-xs bg-slate-50 border border-slate-200 rounded p-2 overflow-auto max-h-96 whitespace-pre-wrap">{output}</pre>
+          <pre className="text-xs bg-surface border border-divider rounded-md p-2 overflow-auto max-h-96 whitespace-pre-wrap font-mono">{output}</pre>
         )}
-        <div className="flex justify-end gap-2 mt-2">
-          <button onClick={onClose} className="px-3 py-1 text-sm rounded bg-slate-200">Close</button>
+        <div className="dialog-actions">
+          <button type="button" onClick={onClose} className="btn btn-secondary">Close</button>
           {!error && (
-            <button onClick={handleCopy} className="px-3 py-1 text-sm rounded bg-slate-800 text-white">Copy</button>
+            <button type="button" onClick={handleCopy} className="btn btn-primary">Copy</button>
           )}
         </div>
       </div>

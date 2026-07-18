@@ -88,13 +88,13 @@ export function TryItOutForm({ endpoint }: { endpoint: Endpoint }) {
 
   return (
     <div className="p-3 flex flex-col gap-3">
-      <h2 className="font-mono text-sm font-bold">{endpoint.method} {endpoint.path}</h2>
+      <h6 className="font-mono normal-case tracking-normal">{endpoint.method} {endpoint.path}</h6>
 
       {pathParams.map((p) => (
-        <label key={p.name} className="text-sm">
-          {p.name} (path{p.required ? ', required' : ''})
+        <label key={p.name} className="field">
+          <label>{p.name} (path{p.required ? ', required' : ''})</label>
           <input
-            className="block w-full border border-slate-300 rounded px-2 py-1"
+            className="input"
             value={pathValues[p.name] ?? ''}
             onChange={(e) => setPathValues({ ...pathValues, [p.name]: e.target.value })}
           />
@@ -102,10 +102,10 @@ export function TryItOutForm({ endpoint }: { endpoint: Endpoint }) {
       ))}
 
       {queryParams.map((p) => (
-        <label key={p.name} className="text-sm">
-          {p.name} (query{p.required ? ', required' : ''})
+        <label key={p.name} className="field">
+          <label>{p.name} (query{p.required ? ', required' : ''})</label>
           <input
-            className="block w-full border border-slate-300 rounded px-2 py-1"
+            className="input"
             value={queryValues[p.name] ?? ''}
             onChange={(e) => setQueryValues({ ...queryValues, [p.name]: e.target.value })}
           />
@@ -113,10 +113,11 @@ export function TryItOutForm({ endpoint }: { endpoint: Endpoint }) {
       ))}
 
       {endpoint.requestBodyExample !== undefined && (
-        <label className="text-sm">
-          Request body (JSON)
+        <label className="field">
+          <label>Request body (JSON)</label>
           <textarea
-            className="block w-full h-32 border border-slate-300 rounded px-2 py-1 font-mono text-xs"
+            className="input font-mono text-xs"
+            style={{ height: 128 }}
             value={bodyText}
             onChange={(e) => setBodyText(e.target.value)}
           />
@@ -124,21 +125,21 @@ export function TryItOutForm({ endpoint }: { endpoint: Endpoint }) {
       )}
 
       <div className="flex gap-2">
-        <button onClick={handleSend} className="px-3 py-1 text-sm rounded bg-slate-800 text-white">Send</button>
-        <button onClick={handleCopyCurl} className="px-3 py-1 text-sm rounded bg-slate-200">Copy as cURL</button>
+        <button type="button" onClick={handleSend} className="btn btn-primary">Send</button>
+        <button type="button" onClick={handleCopyCurl} className="btn btn-secondary">Copy as cURL</button>
       </div>
 
-      {error && <div className="text-sm text-red-600">{error}</div>}
+      {error && <div className="text-sm text-delete">{error}</div>}
 
       {response && (
-        <div className="border-t border-slate-200 pt-2">
-          <div className="text-sm text-slate-600 mb-2">
+        <div className="border-t border-divider pt-2">
+          <div className="text-sm text-muted mb-2">
             Status {response.status} · {response.timeMs} ms
           </div>
           {response.bodyJson !== undefined ? (
             <JsonTree value={response.bodyJson} />
           ) : (
-            <pre className="text-xs whitespace-pre-wrap">{response.bodyText}</pre>
+            <pre className="text-xs whitespace-pre-wrap font-mono">{response.bodyText}</pre>
           )}
         </div>
       )}

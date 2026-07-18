@@ -1,16 +1,16 @@
 // Shared color coding so every view distinguishes value types the same way:
-// string = emerald, number = amber, boolean = violet, null = gray italic.
+// string = muted green, number = muted blue, boolean = muted violet, null = gray italic.
 export function valueClassName(value: unknown): string {
-  if (value === null) return 'text-slate-400 italic'
+  if (value === null) return 'text-neutral-500 italic'
   switch (typeof value) {
     case 'string':
-      return 'text-emerald-700'
+      return 'text-str'
     case 'number':
-      return 'text-amber-600'
+      return 'text-num'
     case 'boolean':
-      return 'text-violet-600'
+      return 'text-bool'
     default:
-      return 'text-slate-600'
+      return 'text-neutral-600'
   }
 }
 

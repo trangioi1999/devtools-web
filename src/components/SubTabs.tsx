@@ -2,20 +2,23 @@ interface SubTabsProps<T extends string> {
   tabs: { id: T; label: string }[]
   active: T
   onChange: (id: T) => void
+  /** Tighter padding, used for the view-mode row inside panes. */
+  compact?: boolean
+  className?: string
 }
 
-/** Segmented-control style tab switcher shared by tool pages. */
-export function SubTabs<T extends string>({ tabs, active, onChange }: SubTabsProps<T>) {
+/** Classical segmented control shared by tool pages. */
+export function SubTabs<T extends string>({ tabs, active, onChange, compact, className = '' }: SubTabsProps<T>) {
   return (
-    <div className="inline-flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5">
+    <div className={`seg ${className}`}>
       {tabs.map((t) => (
         <button
           key={t.id}
           type="button"
+          aria-pressed={active === t.id}
           onClick={() => onChange(t.id)}
-          className={`px-3.5 py-1 text-sm font-medium rounded-md transition-colors ${
-            active === t.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-          }`}
+          className={`seg-opt ${active === t.id ? 'is-selected' : ''}`}
+          style={compact ? { padding: '5px 12px' } : undefined}
         >
           {t.label}
         </button>
