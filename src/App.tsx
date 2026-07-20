@@ -1,8 +1,12 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { JsonViewerPage } from './tools/json-viewer/JsonViewerPage'
 import { ApiClientPage } from './tools/api-client/ApiClientPage'
+
+// Heavy conversion libraries (SheetJS, mammoth, docx) stay out of the main
+// bundle until the Doc Converter tab is opened.
+const DocConverterPage = lazy(() => import('./tools/doc-converter/DocConverterPage'))
 
 const LEGACY_HASH_ROUTES: Record<string, string> = {
   '#/json': '/json-viewer',
@@ -29,6 +33,14 @@ export default function App() {
           <Route index element={<Navigate to="/json-viewer" replace />} />
           <Route path="/json-viewer" element={<JsonViewerPage />} />
           <Route path="/api-client" element={<ApiClientPage />} />
+          <Route
+            path="/doc-converter"
+            element={
+              <Suspense fallback={<div className="p-6 text-sm text-neutral-500">Loading converter…</div>}>
+                <DocConverterPage />
+              </Suspense>
+            }
+          />
           <Route path="/json" element={<Navigate to="/json-viewer" replace />} />
           <Route path="/api" element={<Navigate to="/api-client" replace />} />
           <Route path="*" element={<Navigate to="/json-viewer" replace />} />
