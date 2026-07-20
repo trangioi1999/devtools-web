@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { aoaToMarkdownTable, parseMarkdownTables } from './markdownTable'
+import { aoaToMarkdownTable, parseMarkdownTables, formatMarkdownTables } from './markdownTable'
 
 describe('aoaToMarkdownTable', () => {
   it('renders header, separator, and body rows', () => {
@@ -51,3 +51,19 @@ describe('parseMarkdownTables', () => {
     expect(parseMarkdownTables('# Just a heading\n\nsome text')).toEqual([])
   })
 })
+
+describe('formatMarkdownTables', () => {
+  it('aligns columns to the widest cell', () => {
+    const out = formatMarkdownTables('| Name | Amount |\n| --- | --- |\n| An | 1200000 |\n| B | 9 |')
+    const lines = out.split('\n')
+    expect(new Set(lines.map((l) => l.length)).size).toBe(1)
+    expect(lines[0]).toBe('| Name | Amount  |')
+    expect(lines[2]).toBe('| An   | 1200000 |')
+  })
+
+  it('leaves non-table content untouched', () => {
+    const md = '# Title\n\nplain text | with pipe\n'
+    expect(formatMarkdownTables(md)).toBe(md)
+  })
+})
+

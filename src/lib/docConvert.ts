@@ -32,11 +32,23 @@ export async function docxToMarkdown(buf: ArrayBuffer): Promise<string> {
   return turndown.turndown(html)
 }
 
-/** Markdown tables -> one workbook, a sheet per table (named by nearest heading). */
+/** '123' / '-4.5' -> number, everything else stays a string. */
+function coerceCell(value: string): string | number {
+  return /^-?\d+(\.\d+)?$/.test(value.trim()) ? Number(value) : value
+}
+
+/**
+ * Markdown tables -> one workbook, a sheet per table (named by nearest
+ * heading). Written with xlsx-js-style so the header row is bold on a gray
+ * fill with thin borders, and column widths fit their content.
+ */
 export async function markdownToXlsxBlob(md: string): Promise<Blob> {
-  const XLSX = await import('xlsx')
+  const XLSX = (await import('xlsx-js-style')) as typeof import('xlsx')
   const tables = parseMarkdownTables(md)
   if (tables.length === 0) throw new Error('No markdown tables found — nothing to export to Excel.')
+
+  const thin = { style: 'thin', color: { rgb: 'C9C5C5' } }
+  const border = { top: thin, bottom: thin, left: thin, right: thin }
 
   const wb = XLSX.utils.book_new()
   const usedNames = new Set<string>()
@@ -46,11 +58,53 @@ export async function markdownToXlsxBlob(md: string): Promise<Blob> {
     const base = name
     while (usedNames.has(name)) name = `${base.slice(0, 28)}_${counter++}`
     usedNames.add(name)
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(t.rows), name)
+
+    const aoa = t.rows.map((row, r) => (r === 0 ? row : row.map(coerceCell)))
+    const sheet = XLSX.utils.aoa_to_sheet(aoa)
+
+    const colCount = Math.max(...t.rows.map((r) => r.length))
+    for (let r = 0; r < t.rows.length; r++) {
+      for (let c = 0; c < colCount; c++) {
+        const ref = XLSX.utils.encode_cell({ r, c })
+        const cell = (sheet as Record<string, unknown>)[ref] as { s?: unknown } | undefined
+        if (!cell) continue
+        cell.s =
+          r === 0
+            ? { font: { bold: true }, fill: { fgColor: { rgb: 'EFECEC' } }, border }
+            : { border }
+      }
+    }
+    sheet['!cols'] = Array.from({ length: colCount }, (_, c) => ({
+      wch: Math.min(60, Math.max(10, ...t.rows.map((row) => String(row[c] ?? '').length + 2))),
+    }))
+
+    XLSX.utils.book_append_sheet(wb, sheet, name)
   })
 
   const out = XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer
   return new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+}
+
+/** HTML containing <table> (e.g. clipboard from Excel/Sheets) -> markdown table. */
+export function htmlTableToMarkdown(html: string): string | null {
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  const tables = [...doc.querySelectorAll('table')]
+  if (tables.length === 0) return null
+  return tables
+    .map((table) => {
+      const rows = [...table.querySelectorAll('tr')].map((tr) =>
+        [...tr.querySelectorAll('th,td')].map((cell) => (cell.textContent ?? '').trim()),
+      )
+      return aoaToMarkdownTable(rows.filter((r) => r.length > 0))
+    })
+    .join('\n\n')
+}
+
+/** Tab-separated clipboard text (Excel copy) -> markdown table; null if not TSV. */
+export function tsvToMarkdown(text: string): string | null {
+  const lines = text.replace(/\r/g, '').split('\n').filter((l) => l.trim() !== '')
+  if (lines.length < 2 || !lines[0].includes('\t')) return null
+  return aoaToMarkdownTable(lines.map((l) => l.split('\t')))
 }
 
 interface InlineToken {
@@ -63,7 +117,10 @@ interface InlineToken {
 /** Markdown -> .docx via marked's lexer and the docx builder. */
 export async function markdownToDocxBlob(md: string): Promise<Blob> {
   const [{ lexer }, docx] = await Promise.all([import('marked'), import('docx')])
-  const { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType } = docx
+  const { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, BorderStyle, ShadingType } = docx
+
+  const CELL_BORDER = { style: BorderStyle.SINGLE, size: 4, color: 'C9C5C5' }
+  const CELL_BORDERS = { top: CELL_BORDER, bottom: CELL_BORDER, left: CELL_BORDER, right: CELL_BORDER }
 
   const HEADINGS = [
     HeadingLevel.HEADING_1,
@@ -109,7 +166,13 @@ export async function markdownToDocxBlob(md: string): Promise<Blob> {
       children.push(new Paragraph({ children: inlineRuns(t.tokens) }))
     } else if (t.type === 'code') {
       for (const line of (t.text ?? '').split('\n')) {
-        children.push(new Paragraph({ children: [new TextRun({ text: line, font: 'JetBrains Mono', size: 18 })] }))
+        children.push(
+          new Paragraph({
+            children: [new TextRun({ text: line || ' ', font: 'JetBrains Mono', size: 18 })],
+            shading: { type: ShadingType.CLEAR, fill: 'F4F2F2' },
+            spacing: { before: 0, after: 0 },
+          }),
+        )
       }
     } else if (t.type === 'list') {
       for (const item of t.items ?? []) {
@@ -124,10 +187,14 @@ export async function markdownToDocxBlob(md: string): Promise<Blob> {
     } else if (t.type === 'table') {
       const makeRow = (cells: { tokens?: InlineToken[]; text?: string }[], isHeader: boolean) =>
         new TableRow({
+          tableHeader: isHeader,
           children: cells.map(
             (c) =>
               new TableCell({
-                children: [new Paragraph({ children: inlineRuns(c.tokens, isHeader ? { bold: true } : {}) })],
+                borders: CELL_BORDERS,
+                shading: isHeader ? { type: ShadingType.CLEAR, fill: 'EFECEC' } : undefined,
+                margins: { top: 60, bottom: 60, left: 110, right: 110 },
+                children: [new Paragraph({ children: inlineRuns(c.tokens, isHeader ? { bold: true } : {}), spacing: { before: 0, after: 0 } })],
               }),
           ),
         })
@@ -144,7 +211,18 @@ export async function markdownToDocxBlob(md: string): Promise<Blob> {
     }
   }
 
-  const doc = new Document({ sections: [{ children }] })
+  const doc = new Document({
+    styles: {
+      default: {
+        document: { run: { font: 'Calibri', size: 22 }, paragraph: { spacing: { after: 120, line: 300 } } },
+        heading1: { run: { font: 'Calibri', size: 36, bold: true, color: '1F1E1C' }, paragraph: { spacing: { before: 280, after: 160 } } },
+        heading2: { run: { font: 'Calibri', size: 30, bold: true, color: '1F1E1C' }, paragraph: { spacing: { before: 240, after: 140 } } },
+        heading3: { run: { font: 'Calibri', size: 26, bold: true, color: '3A3835' }, paragraph: { spacing: { before: 200, after: 120 } } },
+        heading4: { run: { font: 'Calibri', size: 24, bold: true, color: '3A3835' }, paragraph: { spacing: { before: 180, after: 100 } } },
+      },
+    },
+    sections: [{ children }],
+  })
   return Packer.toBlob(doc)
 }
 
