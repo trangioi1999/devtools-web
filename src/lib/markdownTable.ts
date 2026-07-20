@@ -69,3 +69,60 @@ export function parseMarkdownTables(md: string): MarkdownTable[] {
 
   return tables
 }
+
+/** Display width where CJK/emoji count as 2 columns — keeps padding aligned. */
+function displayWidth(text: string): number {
+  let w = 0
+  for (const ch of text) {
+    w += /[\u1100-\u115f\u2e80-\ua4cf\uac00-\ud7a3\uf900-\ufaff\ufe30-\ufe4f\uff00-\uff60\uffe0-\uffe6]/.test(ch) ? 2 : 1
+  }
+  return w
+}
+
+function padCell(text: string, width: number): string {
+  return text + ' '.repeat(Math.max(0, width - displayWidth(text)))
+}
+
+/**
+ * Re-align every markdown table in the document so columns line up when
+ * reading the raw source. Non-table lines are left untouched.
+ */
+export function formatMarkdownTables(md: string): string {
+  const lines = md.split('\n')
+  const out: string[] = []
+  let i = 0
+
+  while (i < lines.length) {
+    const line = lines[i]
+    const looksLikeRow = /^\s*\|.*\|\s*$/.test(line)
+    if (looksLikeRow && i + 1 < lines.length && isSeparatorRow(lines[i + 1])) {
+      const rows: string[][] = [splitRawRow(line)]
+      i += 2
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) {
+        rows.push(splitRawRow(lines[i]))
+        i += 1
+      }
+      const width = Math.max(...rows.map((r) => r.length))
+      const norm = rows.map((r) => Array.from({ length: width }, (_, c) => r[c] ?? ''))
+      const colWidths = Array.from({ length: width }, (_, c) =>
+        Math.max(3, ...norm.map((r) => displayWidth(r[c]))),
+      )
+      const render = (r: string[]) => `| ${r.map((cell, c) => padCell(cell, colWidths[c])).join(' | ')} |`
+      out.push(render(norm[0]))
+      out.push(`| ${colWidths.map((w) => '-'.repeat(w)).join(' | ')} |`)
+      for (const r of norm.slice(1)) out.push(render(r))
+      continue
+    }
+    out.push(line)
+    i += 1
+  }
+
+  return out.join('\n')
+}
+
+/** Split a table row keeping escaped pipes escaped (for re-rendering as-is). */
+function splitRawRow(line: string): string[] {
+  const inner = line.trim().replace(/^\|/, '').replace(/\|$/, '')
+  return inner.split(/(?<!\\)\|/).map((c) => c.trim())
+}
+

@@ -8,7 +8,10 @@ import {
   markdownToXlsxBlob,
   markdownToDocxBlob,
   markdownToHtml,
+  htmlTableToMarkdown,
+  tsvToMarkdown,
 } from '../../lib/docConvert'
+import { formatMarkdownTables } from '../../lib/markdownTable'
 
 const MD_KEY = 'devtools:doc-converter:markdown'
 
@@ -101,6 +104,36 @@ export function DocConverterPage() {
 
   const baseName = useMemo(() => (sourceName ? sourceName.replace(/\.[^.]+$/, '') : 'document'), [sourceName])
 
+  const appendMarkdown = (snippet: string) => {
+    handleChange(md.trimEnd() ? `${md.trimEnd()}\n\n${snippet}\n` : `${snippet}\n`)
+  }
+
+  // Paste a table copied from Excel / Google Sheets (HTML or TSV clipboard).
+  const handlePasteTable = () =>
+    run('Reading clipboard…', async () => {
+      try {
+        for (const item of await navigator.clipboard.read()) {
+          if (item.types.includes('text/html')) {
+            const html = await (await item.getType('text/html')).text()
+            const table = htmlTableToMarkdown(html)
+            if (table) {
+              appendMarkdown(table)
+              return
+            }
+          }
+        }
+      } catch {
+        // clipboard.read() may be unavailable/denied — fall back to plain text
+      }
+      const text = await navigator.clipboard.readText()
+      const table = tsvToMarkdown(text)
+      if (table) appendMarkdown(table)
+      else if (text.trim()) appendMarkdown(text.trim())
+      else throw new Error('Clipboard is empty — copy a table from Excel/Google Sheets first.')
+    })
+
+  const handleFormatTables = () => handleChange(formatMarkdownTables(md))
+
   return (
     <div className="h-full flex flex-col">
       <div
@@ -111,7 +144,7 @@ export function DocConverterPage() {
           handleFile(e.dataTransfer.files?.[0])
         }}
       >
-        <button type="button" className="btn btn-primary" onClick={() => fileInputRef.current?.click()}>
+        <button type="button" className="btn btn-primary" onClick={() => fileInputRef.current?.click()} disabled={busy !== null}>
           Upload file
         </button>
         <input
@@ -124,12 +157,25 @@ export function DocConverterPage() {
             e.target.value = ''
           }}
         />
-        <span className="text-[12px] text-neutral-500">.docx · .xlsx · .csv · .md — or drop a file anywhere on this bar</span>
+        <button type="button" className="btn btn-secondary" onClick={handlePasteTable} disabled={busy !== null}>
+          Paste table
+        </button>
+        <button type="button" className="btn btn-secondary" onClick={handleFormatTables} disabled={busy !== null} title="Re-align markdown table columns">
+          Format tables
+        </button>
+        <span className="text-[12px] text-neutral-500">.docx · .xlsx · .csv · .md — or drop a file</span>
+
+        {busy && (
+          <span className="flex items-center gap-2 text-[12px] text-accent-700 fade-in">
+            <span className="spinner" /> {busy}
+          </span>
+        )}
 
         <div className="ml-auto flex items-center gap-2">
           <button
             type="button"
             className="btn btn-secondary"
+            disabled={busy !== null}
             onClick={() =>
               run('Exporting…', async () => downloadBlob(new Blob([md], { type: 'text/markdown' }), `${baseName}.md`))
             }
@@ -139,6 +185,7 @@ export function DocConverterPage() {
           <button
             type="button"
             className="btn btn-secondary"
+            disabled={busy !== null}
             onClick={() => run('Exporting…', async () => downloadBlob(await markdownToXlsxBlob(md), `${baseName}.xlsx`))}
           >
             ↓ .xlsx
@@ -146,6 +193,7 @@ export function DocConverterPage() {
           <button
             type="button"
             className="btn btn-secondary"
+            disabled={busy !== null}
             onClick={() => run('Exporting…', async () => downloadBlob(await markdownToDocxBlob(md), `${baseName}.docx`))}
           >
             ↓ .docx
@@ -153,11 +201,15 @@ export function DocConverterPage() {
         </div>
       </div>
 
-      {(error || busy) && (
-        <div className={`px-4 py-1 text-sm ${error ? 'text-delete' : 'text-neutral-600'}`}>{error ?? busy}</div>
-      )}
+      {error && <div className="px-4 py-1 text-sm text-delete fade-in">{error}</div>}
 
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 relative">
+        {busy && busy.startsWith('Converting') && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-bg/70 backdrop-blur-[1px] fade-in">
+            <span className="spinner spinner-lg" />
+            <span className="text-sm text-neutral-700">{busy}</span>
+          </div>
+        )}
         <SplitPane direction="horizontal" storageKey="devtools:doc-converter:split">
           <div className="h-full flex flex-col min-h-0">
             <div className="flex items-baseline gap-2 px-3 py-2 border-b border-divider">
@@ -180,7 +232,7 @@ export function DocConverterPage() {
               <h6 className="m-0 text-neutral-600">Preview</h6>
             </div>
             {/* Rendered from the user's own markdown, local-only */}
-            <div className="flex-1 overflow-auto px-6 py-4 md-preview" dangerouslySetInnerHTML={{ __html: html }} />
+            <div key={html.length} className="flex-1 overflow-auto px-6 py-4 md-preview fade-in" dangerouslySetInnerHTML={{ __html: html }} />
           </div>
         </SplitPane>
       </div>

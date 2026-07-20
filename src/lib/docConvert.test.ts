@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as XLSX from 'xlsx'
-import { spreadsheetToMarkdown, markdownToXlsxBlob, markdownToDocxBlob, markdownToHtml } from './docConvert'
+import { spreadsheetToMarkdown, markdownToXlsxBlob, markdownToDocxBlob, markdownToHtml, tsvToMarkdown, htmlTableToMarkdown } from './docConvert'
 
 function workbookBuffer(sheets: Record<string, unknown[][]>): ArrayBuffer {
   const wb = XLSX.utils.book_new()
@@ -54,3 +54,34 @@ describe('markdownToHtml', () => {
     expect(html).toContain('<table>')
   })
 })
+
+describe('markdownToXlsxBlob styling', () => {
+  it('coerces numeric body cells to numbers and sizes columns', async () => {
+    const blob = await markdownToXlsxBlob('| Name | Amount |\n| --- | --- |\n| An | 1200000 |')
+    const wb = XLSX.read(await blob.arrayBuffer(), { type: 'array', cellStyles: true })
+    const sheet = wb.Sheets[wb.SheetNames[0]]
+    expect((sheet.B2 as { t: string }).t).toBe('n')
+    expect((sheet.B2 as { v: unknown }).v).toBe(1200000)
+    expect(sheet['!cols']?.length).toBeGreaterThanOrEqual(2)
+  })
+})
+
+describe('clipboard helpers', () => {
+  it('converts TSV text to a markdown table', () => {
+    expect(tsvToMarkdown('Name\tAge\nAn\t30')).toBe('| Name | Age |\n| --- | --- |\n| An | 30 |')
+  })
+
+  it('returns null for plain text without tabs', () => {
+    expect(tsvToMarkdown('just words')).toBeNull()
+  })
+
+  it('converts an HTML table to markdown', () => {
+    const md = htmlTableToMarkdown('<table><tr><th>Name</th></tr><tr><td>An</td></tr></table>')
+    expect(md).toBe('| Name |\n| --- |\n| An |')
+  })
+
+  it('returns null when the HTML has no table', () => {
+    expect(htmlTableToMarkdown('<p>hi</p>')).toBeNull()
+  })
+})
+
