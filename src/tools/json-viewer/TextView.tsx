@@ -10,7 +10,7 @@ export function TextView({ value }: { value: unknown }) {
       value={text}
       theme={CLASSICAL_THEME}
       beforeMount={defineClassicalTheme}
-      options={{ minimap: { enabled: false }, fontSize: 13, fontFamily: 'JetBrains Mono, monospace', readOnly: true }}
+      options={{ automaticLayout: true, minimap: { enabled: false }, fontSize: 13, fontFamily: 'JetBrains Mono, monospace', readOnly: true }}
     />
   )
 }

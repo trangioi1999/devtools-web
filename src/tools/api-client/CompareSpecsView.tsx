@@ -23,7 +23,7 @@ const KIND_STYLES: Record<ChangeKind, { badge: string; label: string }> = {
   modified: { badge: 'text-modified', label: '~' },
 }
 
-const EDITOR_OPTIONS = { minimap: { enabled: false }, fontSize: 13, fontFamily: 'JetBrains Mono, monospace' }
+const EDITOR_OPTIONS = { automaticLayout: true, minimap: { enabled: false }, fontSize: 13, fontFamily: 'JetBrains Mono, monospace' }
 
 function useParsedSpec(text: string): { spec: ApiSpec | null; error: string | null } {
   const [state, setState] = useState<{ spec: ApiSpec | null; error: string | null }>({ spec: null, error: null })

@@ -11,7 +11,7 @@ const RIGHT_KEY = 'devtools:json-viewer:compare-right'
 const DEFAULT_LEFT = '{\n  "a": 1\n}'
 const DEFAULT_RIGHT = '{\n  "a": 2\n}'
 
-const EDITOR_OPTIONS = { minimap: { enabled: false }, fontSize: 13, fontFamily: 'JetBrains Mono, monospace' }
+const EDITOR_OPTIONS = { automaticLayout: true, minimap: { enabled: false }, fontSize: 13, fontFamily: 'JetBrains Mono, monospace' }
 
 export function CompareView() {
   const [left, setLeft] = useState(() => localStorage.getItem(LEFT_KEY) ?? DEFAULT_LEFT)

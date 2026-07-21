@@ -177,7 +177,7 @@ export function JsonViewerPage() {
                     theme={CLASSICAL_THEME}
                     onMount={handleMount}
                     onChange={handleChange}
-                    options={{ minimap: { enabled: false }, fontSize: 13, fontFamily: 'JetBrains Mono, monospace' }}
+                    options={{ automaticLayout: true, minimap: { enabled: false }, fontSize: 13, fontFamily: 'JetBrains Mono, monospace' }}
                   />
                 </div>
               </div>
