@@ -2,8 +2,27 @@ import type { Monaco } from "@monaco-editor/react";
 
 export const CLASSICAL_THEME = "classical";
 
+let fontsRemeasured = false;
+
+/**
+ * Monaco measures character widths as soon as an editor mounts. Our UI fonts
+ * (JetBrains Mono included) load asynchronously via a Google Fonts <link>,
+ * so on a fresh load Monaco often measures against the fallback font first.
+ * Once the real font swaps in, glyphs render wider than Monaco's cached
+ * metrics — selections, the cursor, and word-wrap all end up computed
+ * against the narrower fallback width, so a selection can visually stop
+ * short of where the (now wider) text actually ends. Re-measuring once the
+ * webfont is confirmed loaded keeps them in sync.
+ */
+function remeasureFontsWhenReady(monaco: Monaco): void {
+  if (fontsRemeasured || typeof document === "undefined" || !("fonts" in document)) return;
+  fontsRemeasured = true;
+  document.fonts.ready.then(() => monaco.editor.remeasureFonts());
+}
+
 /** Registers the Classical light Monaco theme; safe to call multiple times. */
 export function defineClassicalTheme(monaco: Monaco): void {
+  remeasureFontsWhenReady(monaco);
   monaco.editor.defineTheme(CLASSICAL_THEME, {
     base: "vs",
     inherit: true,

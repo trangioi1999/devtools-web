@@ -29,7 +29,7 @@ or write markdown here and export it back to Word/Excel.
 | Markdown → Word/Excel | ready |
 `
 
-const EDITOR_OPTIONS = { minimap: { enabled: false }, fontSize: 13, fontFamily: 'JetBrains Mono, monospace', wordWrap: 'on' as const }
+const EDITOR_OPTIONS = { automaticLayout: true, minimap: { enabled: false }, fontSize: 13, fontFamily: 'JetBrains Mono, monospace', wordWrap: 'on' as const }
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
